@@ -50,6 +50,13 @@ div#excelDiv div.headerRight div.title {
 	margin:17px 0 17px 10px;
 }
 
+div#activity {
+	float:left;
+	width:20px;
+	font-weight:bold;
+	margin:17px 0 17px 10px;
+}
+
 div#excelDiv div.headerRight div.topMenu {
 	float:right;
 	font-family: Arial, sans-serif;
@@ -80,8 +87,22 @@ div#excelDiv div.body {
 }
 
 div#nrofrecords {
-	margin-bottom:10px;
+	float:left;
+	margin-bottom:7px;
 	font-style: bold;
+}
+
+div#status {
+	border: none;
+	overflow:hidden;
+	float:right;
+        width:300px;
+	text-overflow: ellipsis clip;
+	text-align:right;
+	color:#21469e;
+	font-weight:bold;
+	font-size:13px;
+	margin:3px 2px 0 0;
 }
 
 div#help {
@@ -111,6 +132,9 @@ div.errorMessage {
 	padding:10px;
 	border:2px solid red;
 	white-space:wrap;
+}
+
+div#fileNotFound div.errorMessage div.fullErrorMessage {
 	word-break:break-all;
 }
 
@@ -125,6 +149,8 @@ div#activeXError > ul > li {
 iframe#myframe {
 	width:820px;
 	height:768px;
+	border-bottom:1px solid #b1c4df;
+	border-left:none;
 	float:left;
 }
 
@@ -146,5 +172,18 @@ iframe#responsiveFilemanager {
 	font-weight:bold;
 	font-size:18px;
 	margin:20px 0 10px 0;
+}
+
+div#placeAllCheckedAds {
+	margin-bottom:5px;
+	display:none;
+	clear:all;
+}
+
+div#tableBox {
+	clear:both;
+	display:none;
+	padding:0;
+	margin:0;
 }
 

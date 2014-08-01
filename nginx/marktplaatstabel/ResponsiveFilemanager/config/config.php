@@ -21,10 +21,10 @@ mb_internal_encoding('UTF-8');
 //    |   |   |   |   |- plugin.min.js
 
 $base_url ="http://".$_SERVER['HTTP_HOST'];  // DON'T TOUCH (base url (only domain) of site (without final /)).
-$upload_dir = '/Marktplaatstabel/'; // path from base_url to base of upload folder (with start and final /)
-$current_path = 'C:/Users/Public/Documents/Marktplaatstabel/'; // relative path from filemanager folder to upload folder (with final /)
+$upload_dir = '/Marktplaats-tabel/'; // path from base_url to base of upload folder (with start and final /)
+$current_path = 'C:/Users/Public/Documents/Marktplaats-tabel/'; // relative path from filemanager folder to upload folder (with final /)
 //thumbs folder can't put inside upload folder
-$thumbs_base_path = 'C:/Users/Public/Documents/Marktplaatstabel_thumbs/'; // relative path from filemanager folder to thumbs folder (with final /)
+$thumbs_base_path = 'C:/Users/Public/Documents/Marktplaats-tabel_thumbs/'; // relative path from filemanager folder to thumbs folder (with final /)
 
 // OPTIONAL SECURITY
 // if set to true only those will access RF whose url contains the access key(akey) like: 
@@ -140,7 +140,7 @@ $copy_cut_max_count	 = 200;
 //Allowed extensions (lowercase insert)
 //**********************
 $ext_img = array('jpg', 'jpeg', 'png', 'gif', 'bmp', 'tiff', 'svg'); //Images
-$ext_file = array('doc', 'docx','rtf', 'pdf', 'xls', 'xlsx', 'txt', 'csv','html','xhtml','psd','sql','log','fla','xml','ade','adp','mdb','accdb','ppt','pptx','odt','ots','ott','odb','odg','otp','otg','odf','ods','odp','css','ai'); //Files
+$ext_file = array('doc', 'docx','rtf', 'pdf', 'xls', 'xlsx', 'xlsm', 'txt', 'csv','html','xhtml','psd','sql','log','fla','xml','ade','adp','mdb','accdb','ppt','pptx','odt','ots','ott','odb','odg','otp','otg','odf','ods','odp','css','ai'); //Files
 $ext_video = array('mov', 'mpeg', 'mp4', 'avi', 'mpg','wma',"flv","webm"); //Video 
 $ext_music = array('mp3', 'm4a', 'ac3', 'aiff', 'mid','ogg','wav'); //Audio
 $ext_misc = array('zip', 'rar','gz','tar','iso','dmg'); //Archives

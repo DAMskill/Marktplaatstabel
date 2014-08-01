@@ -2,7 +2,7 @@
 
 [Setup]
 AppName=Marktplaatstabel
-AppVersion=1.0
+AppVersion=1.1
 DefaultDirName={pf}\Marktplaatstabel
 DefaultGroupName=Marktplaatstabel
 UninstallDisplayIcon={app}\images\marktplaatstabel.ico
@@ -17,12 +17,12 @@ Name: "nl"; MessagesFile: "compiler:Languages\Dutch.isl"
 DestDir: {app}; Source: *; Excludes: "*.iss,\images\WizModernImage.bmp,\Output\*"; Flags: recursesubdirs createallsubdirs 
 Source: CertMgr.exe; DestDir: {app}; Flags: deleteafterinstall
 Source: server.crt; DestDir: {app}; Flags: deleteafterinstall
-Source: Excel files\Voorbeeldtabel.xlsx; DestDir: {commondocs}\Marktplaatstabel;
+Source: Excel files\Voorbeeldtabel.xlsm; DestDir: {commondocs}\Marktplaats-tabel;
 ;Source: "Readme.txt"; DestDir: "{app}"; Flags: isreadme
 Source: "Visual C++ Redistributable for Visual Studio 2012 Update 4\vcredist_x86.exe"; DestDir: {tmp}; Flags: deleteafterinstall
 
 [Dirs]
-Name: "{commondocs}\Marktplaatstabel"
+Name: "{commondocs}\Marktplaats-tabel"
 
 [Icons]
 Name: "{group}\Marktplaatstabel Starten"; Filename: "{app}\start.bat"; WorkingDir: "{app}"; IconFilename: "{app}\images\marktplaatstabel.ico"

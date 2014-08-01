@@ -972,6 +972,8 @@ form {
 .list-view1.grid .img-precontainer-mini .filetype.xls,
 .list-view2.grid .img-precontainer-mini .filetype.xlsx,
 .list-view1.grid .img-precontainer-mini .filetype.xlsx,
+.list-view2.grid .img-precontainer-mini .filetype.xlsm,
+.list-view1.grid .img-precontainer-mini .filetype.xlsm,
 .list-view2.grid .img-precontainer-mini .filetype.css,
 .list-view1.grid .img-precontainer-mini .filetype.css {
   background: #1A712C;

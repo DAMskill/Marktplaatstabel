@@ -19,7 +19,7 @@
  *******************************************************************************/
 ?>
 <?php require('ResponsiveFilemanager/config/config.php'); ?>
-<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<!DOCTYPE HTML">
 <html>
 
 <?php  if (isset($_GET["file"])) { /* HTTPS://LOCALHOST MARKTPLAATS */ ?>
@@ -41,6 +41,7 @@
 			<div class="headerRight">
 				<img id="logo" src="/mpexcel-32x32.ico">
 				<div class="title">Marktplaatstabel</div>
+				<div id="activity"></div>
 				<div class="topMenu"><a href="http://localhost/marktplaatstabel">Terug naar bestandsoverzicht</a></div>
 			</div>
 			<div id="headerBottom"></div>
@@ -50,22 +51,27 @@
                                 <div id="help">
 					<div id="activeXError"><?php require('ActiveXError.php'); ?></div>
 					<div id="browserNotSupported">
-						<div class="errorMessage">Voor deze toepassing kunt u alleen Internet Explorer gebruiken.</div>
+						<div class="errorMessage">Voor deze toepassing kunt u uitsluitend Internet Explorer gebruiken.</div>
 					</div>
 					<div id="fileNotFound">
-						<div class="errorMessage">Bestand niet gevonden: </div>
+						<div class="errorMessage">Bestand niet gevonden: <div class="fullErrorMessage"></div></div>
 					</div>
 					<div id="unknown">
 						<div class="errorMessage"></div>
 					</div>
 				</div>
 				<div id="nrofrecords"></div>
-                                <table class="ExcelTable2007">
-					<tbody>
-						<tr><th class="heading">&nbsp;</th><th>A</th><th>B</th></tr>
-						<tr><td class="heading">1</td><td><b>Titel</b></td><td><b>Rubriek</b></td></tr>
-					</tbody>
-				</table>
+				<div id="status"></div>
+                                <div id="placeAllCheckedAds"><input id="submitAllChecked" type="submit" value="Plaats advertenties"></div>
+                                <div id="tableBox">
+					<table class="ExcelTable2007">
+						<tbody>
+							<tr><th><input id="checkAll" type="checkbox"></th><th class="heading">&nbsp;</th><th>A</th><th>B</th></tr>
+							<tr><td><input type="checkbox" disabled></td><td class="heading">1</td><td><b>Titel</b></td><td><b>Rubriek</b></td></tr>
+						</tbody>
+					</table>
+
+				</div>
 			</div>
 		</div>
 

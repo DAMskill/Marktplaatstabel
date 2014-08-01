@@ -506,7 +506,7 @@ $(document).ready(function(){
 		var filenameParts = _this.attr('data-file').split(".");
 		var extension = filenameParts[filenameParts.length-1];
 		// if excel file
-		if ($.inArray(extension, ["xlsx","xls"])>-1) {
+		if ($.inArray(extension, ["xlsx","xls","xlsm"])>-1) {
                 	var folder_path = $('#sub_folder').val()+$('#fldr_value').val();
 			window.parent.location = "https://localhost/marktplaatstabel/?file="+folder_path+_this.attr('data-file');
 		}

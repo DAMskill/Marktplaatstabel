@@ -19,6 +19,8 @@
 
 var cookieHandler = (function() {
 
+    "use strict";
+ 
     function setCookie(name,value,days) {
 
 	if (days) {
@@ -57,19 +59,49 @@ var cookieHandler = (function() {
 })();
 
 var Marktplaatstabel = (function() {
+
 	"use strict";
+
+	var MAX_NR_OF_PICTURES = 20;
+	var COLUMN_HEADERS = [
+		'Rubriek',
+		'Titel',
+		'Keuzelijsten',
+		'Aankruisvakjes',
+		'Advertentie',
+		'Vraagprijs',
+		'Prijssoort',
+		'Paypal',
+		'Overige invoervelden',
+		'Voeg foto toe'
+	];
 
 	var excelApp = null;
 	var excelWorkbook = null;
 	var excelSheet = null;
 
+	var _i = 0;
+	var _actionSuccessCounter = 0;
 	var _domChangeTimer = [];
-	var _domChangeDelay = 1000;
+	var _domChangeDelay = 200;
+	var _checkIfReady = null
+
 	var record = null;
+	var columnPositions = null;
 
 	jQuery.expr[':'].Contains = function(a,i,m){
 	     	return (a.textContent || a.innerText || "").toUpperCase().indexOf(m[3].toUpperCase())>=0;
 	};
+
+	function checkRequiredColumns() {
+		var found = null;
+		$.each(COLUMN_HEADERS, function (ix, colName) {
+			found =	excelSheet.Rows(1).Find(colName);
+			if (found===null) {
+				throw new Error("Kolom <b>'"+colName+"'</b> niet gevonden in Excel sheet.")
+			}
+		});
+	}
 
 	/* Wait for DOM mutation and execute action function.
 	 * Simulates: MutationObserver, DOMSubtreeModified
@@ -77,63 +109,117 @@ var Marktplaatstabel = (function() {
 	 * http://www.w3.org/TR/2014/WD-dom-20140710/#mutation-observers
 	 **/
 	function waitForConditionAndExecute(id, condition, action, text, time) {
-		console.log("id:"+id);
 
 	   if (_domChangeTimer[id]!=null) 
 	       clearInterval(_domChangeTimer[id]);
 
 	   _domChangeTimer[id] = setInterval(function() {
 
-		console.log("before cond id:"+id+" " +text);
-
-		try {
+		setStatusMessage("Bezig met: "+text);
 			if(condition()) {
-				console.log("after cond id:"+id+" "+text);
-				if (action()!==false) 
+				//console.log("after cond id:"+id+" "+text);
+				if (action()!==false) {
 					clearInterval(_domChangeTimer[id]);
+					++_actionSuccessCounter;
+				}
 			}
+		try {
 		}
 		catch(error) {
-			/* Clicking records too fast generating too many timers
-			 * will result in IE Permission denied errors. */
-			console.log("Dom change error: "+error);
+			// Clicking records too fast generating too many timers
+			// will result in IE Permission denied errors.
+			//console.log("Dom change error: "+error);
 			localStorage.domChangeError = true;
 			location.reload(true);
 		}
-	   }, _domChangeDelay);
+	   }, time || _domChangeDelay);
 	}
 
-	function clearDomIntervals() {
+	function clearAllIntervals() {
 		$.each(_domChangeTimer, function(ix,val) {
 			clearInterval(_domChangeTimer[ix]);
 		});
+		_domChangeTimer = [];
+
+		clearInterval(_checkIfReady);
+		_checkIfReady = null;
+	}
+
+	function getColumnNumberByName(columnName) {
+		var found = $.inArray(columnName, COLUMN_HEADERS);
+		if (found===-1) {
+			throw new Error("Softwarefout: kolom <b>'"+columnName+"'</b> is niet geregistreerd.")
+		}
+		else {
+			return excelSheet.Rows(1).Find(columnName).Column;
+		}
+	}
+
+	function getColumnPositions() {
+
+		var columnPositions = {};
+		columnPositions.categoryColumn      = getColumnNumberByName('Rubriek');
+		columnPositions.titleColumn         = getColumnNumberByName('Titel');
+		columnPositions.dropdownColumn      = getColumnNumberByName('Keuzelijsten');
+		columnPositions.checkboxColumn      = getColumnNumberByName('Aankruisvakjes');
+		columnPositions.advertisementColumn = getColumnNumberByName('Advertentie');
+		columnPositions.priceColumn         = getColumnNumberByName('Vraagprijs');
+		columnPositions.pricetypeColumn     = getColumnNumberByName('Prijssoort');
+		columnPositions.paypalColumn        = getColumnNumberByName('Paypal');
+		columnPositions.inputColumn         = getColumnNumberByName('Overige invoervelden');
+		columnPositions.addPictureColumn    = getColumnNumberByName('Voeg foto toe');
+		columnPositions.firstPictureColumn  = parseInt(columnPositions.addPictureColumn)+1;
+		return columnPositions;
 	}
 
 	function readRecord(nr) {
 
-		console.log(nr);
 		var record = {};
 
-		try {
-			record.nrofrows      = excelSheet.UsedRange.Rows.Count-1;
-			record.category      = excelSheet.Cells(nr+1,1).Value;
-			record.title         = excelSheet.Cells(nr+1,2).Value;
-			record.dropdowns     = excelSheet.Cells(nr+1,3).Value;
-			record.checkboxes    = excelSheet.Cells(nr+1,4).Value;
-			record.advertisement = excelSheet.Cells(nr+1,5).Value;
-			record.price         = excelSheet.Cells(nr+1,6).Value;
-			record.pricetype     = excelSheet.Cells(nr+1,7).Value;
-			record.paypal        = excelSheet.Cells(nr+1,8).Value;
-			record.inputfields   = excelSheet.Cells(nr+1,9).Value;
-		}
-		catch(err) {
-			return false;
+		/* Fetch column position */
+		if (columnPositions === null)
+			columnPositions = getColumnPositions();
+
+		record.nrofrows      = excelSheet.Cells.Find("*", excelSheet.Cells(1), -4163, 1, 1, 2).Row
+
+		record.category      = excelSheet.Cells(nr+1, columnPositions.categoryColumn).Value;
+		record.dropdowns     = excelSheet.Cells(nr+1, columnPositions.dropdownColumn).Value;
+		record.checkboxes    = excelSheet.Cells(nr+1, columnPositions.checkboxColumn).Value;
+		record.inputfields   = excelSheet.Cells(nr+1, columnPositions.inputColumn).Value;
+		record.pictures      = excelSheet.Cells(nr+1, columnPositions.firstPictureColumn).Value;
+
+		record.title         = excelSheet.Cells(nr+1, columnPositions.titleColumn).Value;
+		record.advertisement = excelSheet.Cells(nr+1, columnPositions.advertisementColumn).Value;
+		record.price         = excelSheet.Cells(nr+1, columnPositions.priceColumn).Value;
+		record.pricetype     = excelSheet.Cells(nr+1, columnPositions.pricetypeColumn).Value;
+		record.paypal        = excelSheet.Cells(nr+1, columnPositions.paypalColumn).Value;
+                                                                      
+		var pictureIndex = columnPositions.firstPictureColumn+1;
+		while (typeof excelSheet.Cells(nr+1, pictureIndex).Value !== 'undefined' && pictureIndex < (MAX_NR_OF_PICTURES + parseInt(columnPositions.firstPictureColumn))) {
+			record.pictures += ';' + excelSheet.Cells(nr+1,pictureIndex++).Value;
 		}
 
 		if (typeof record.category !== 'undefined') {
 			record.category = record.category.split(";");
 			$.each(record.category, function(ix,val) {
-				record.category[ix]=val.trim();
+				val=$.trim(val);
+				if (val!=='') {
+					record.category[ix]=val;
+				}
+				else {
+					/* Remove empty elements */
+					record.category.splice(ix,1);
+				}
+			});
+		}
+
+		if (typeof record.pictures !== 'undefined') {
+			record.pictures = record.pictures.split(";");
+			$.each(record.pictures, function(ix,val) {
+				val=$.trim(val);
+				if (val!=='') {
+					record.pictures[ix]=val;
+				}
 			});
 		}
 
@@ -184,145 +270,164 @@ var Marktplaatstabel = (function() {
 		return record;
 	}
 
+	function setImage(ix, imgData) {
+		var imgUploadContainer = $("#myframe").contents().find("div.uploaders div.uploader-container").eq(ix);
+		var imageUrl = (imgUploadContainer.hasClass('large') ? imgData.largeImageUrl : imgData.imageUrl);
+
+		imgUploadContainer.find("> input[name='images.ids']").val(imgData.id); 
+		imgUploadContainer.find("div.thumb").append("<img src='"+imageUrl+"'>").css({"width":"100%","height":"100%"}); 
+		imgUploadContainer.find("div.large-photo-subtext").hide();
+		imgUploadContainer.find("img.image-upload-logo").hide();
+		imgUploadContainer.find("span.uploader-label").hide();
+		imgUploadContainer.removeClass("empty").addClass("complete");
+	}
+
+	function isScreenAfterCategorySelectionActive() { 
+		return $("#myframe").contents().find("#syi-breadcrumbs-content").length > 0 
+	}
+
         function getCategoryListItem (categoryListSelector, categoryString) {
+		/* Return test function, not the result */
 		return function () {
-			return $("#myframe").contents().find(categoryListSelector).filter( function() { return $.trim($(this).text().toUpperCase())===$.trim(categoryString.toUpperCase())});
+			return $("#myframe").contents().find(categoryListSelector).filter( function() { return $.trim($(this).text().toUpperCase())===$.trim(categoryString.toUpperCase()); });
 		}
 	}
 
-	function handleRecord(record) {
+	function handleCategories(record) {
 
 		var condition = null;
 		var action = null;
-		var _i = 0;
-
-		if (typeof record !=='object') return false;
 
 		/* Categories */
-		if (typeof record.category !== 'undefined') {
+		if (typeof record.category !== 'undefined' && record.category.length===3) {
+
+			var category = record.category;
 
 			var cat1Sel = "#syi-categories-l1 ul.listbox li";
 			var cat2Sel = "#syi-categories-bucket ul.listbox li";
 			var cat3Sel = "#syi-categories-l2 ul.listbox li";
-			var isScreenAfterCategorySelectionActive = function() { return $("#myframe").contents().find("#syi-breadcrumbs-content").length > 0 };
 
-			var category = record.category;
+			var listItemCategory1 = getCategoryListItem(cat1Sel, category[0]);
+			var listItemCategory2 = getCategoryListItem(cat2Sel, category[1]);
+			var listItemCategory3 = getCategoryListItem(cat3Sel, category[2]);
 
-			var getCategory1 = getCategoryListItem(cat1Sel, category[0]);
-			var getCategory2 = getCategoryListItem(cat2Sel, category[1]);
-			var getCategory3 = getCategoryListItem(cat3Sel, category[2]);
+			var categorySelection = 
+			{
+				"Category 1": {
+					"condition": function() { if (listItemCategory1().length>0) { return true; } }, 
+					"action"   : function() {
+							listItemCategory1().click();
+							return listItemCategory2().length>0;
+						     }
+				},
+				"Category 2": {
+					"condition": function() { return true; }, 
+					"action"   : function() {
+							listItemCategory2().click();
+							return listItemCategory3().length>0;
+						     }
+				},
+				"Category 3": {
+					"condition": function() { return true; }, 
+					"action"   : function() {
+							listItemCategory3().click();
+							return isScreenAfterCategorySelectionActive();
+						     }
+				}
+			};
 
-			/* Category 1 */
-			condition = function(){ if (getCategory1().length>0) return true;};
-			action = function() {
-				getCategory1().click();
-				// Clicking on cat 1 is succesful, when cat 2 is present, else try again
-				return getCategory2().length>0;
-			}
-			waitForConditionAndExecute(++_i, condition, action, "category"+category[0]);
-
-			/* Category 2 */
-			condition = function(){ return true;};
-			action = function() {
-				getCategory2().click();
-				// Clicking on cat 2 is succesful, when cat 3 is present, else try again
-				return getCategory3().length>0;
-			}
-			waitForConditionAndExecute(++_i, condition, action, "category"+category[1]);
-
-			/* Category 3 */
-			condition = function(){ return true;};
-			action = function() {
-				getCategory3().click();
-				// Clicking on cat 3 is succesful when new advertisment form was opened
-				return isScreenAfterCategorySelectionActive();
-			}
-			waitForConditionAndExecute(++_i, condition, action, "category"+category[2]);
+			var ix=0;
+			$.each(categorySelection, function (name, cat) {
+				waitForConditionAndExecute(_i++, cat.condition, cat.action, name + ": "+category[ix++]);
+			});
 		}
+	}
+
+	function handleForm(record) {
+
+		var condition = null;
+		var action = null;
+		var condition2 = null;
+		var action2 = null;
 
 		/* Title */
 		if (typeof record.title!== 'undefined') {
 			condition = function(){if ($("#myframe").contents().find("input[name=title]").length===1) return true;};
 			action = function() {$("#myframe").contents().find("input[name=title]").val(record.title)};
-			waitForConditionAndExecute(++_i, condition, action, "title");
+			waitForConditionAndExecute(_i++, condition, action, "titel "+record.title);
 		}
 
 		/* Select elements */
 		if (typeof record.dropdowns !== 'undefined') {
-			++_i;
 			$.each(record.dropdowns, function(ix,rec) {
-				condition = function(){if ($("#myframe").contents().find("label.form-label:Contains('"+ rec[0] +"')").filter(":visible").length>0) return true;}.bind(null,rec);
+				condition = function(){if ($("#myframe").contents().find("label.form-label:Contains('"+ rec[0] +"')").filter(":visible").length>0) return true;}.
 				action = function() {
 					rec[1] = rec[1].toUpperCase();
 					// Find select box value and click on it
 					$("#myframe").contents().find("label.form-label:Contains('"+ rec[0] +"')").parent().find("ul.item-frame li").filter( function() { return $(this).text().toUpperCase()===rec[1]; }).click(); 
 					// Check if the label of the select box was updated. If not waitForConditionAndExecute will try again.
 					return ($("#myframe").contents().find("label.form-label:Contains('"+ rec[0] +"')").parent().find("span.label").text().toUpperCase().indexOf(rec[1])!=-1);
-				}.bind(null,rec);
-				waitForConditionAndExecute(_i+ix, condition, action, "dropdowns"+rec[0]+"->"+rec[1], "dropdowns"+rec[1]);
+				};
+				waitForConditionAndExecute(_i+ix, condition, action, "keuzelijst "+rec[0]+" -> "+rec[1]);
 			});
 			_i=_i+record.dropdowns.length;
 		}
 
 		/* Input elements */
 		if (typeof record.inputfields !== 'undefined') {
-			++_i;
 			$.each(record.inputfields, function(ix,rec) {
 				//condition = function(){if ($("#myframe").contents().find("label.form-label:Contains('"+ rec[0] +"')").filter(":visible").length>0) return true;}.bind(null,rec);
 				//action = function() {$("#myframe").contents().find("label.form-label:Contains('"+ rec[0] +"')").next().val(rec[1]);}.bind(null,rec);
-				condition = function(){if ($("#myframe").contents().find("label:Contains('"+ rec[0] +"')").filter(":visible").length>0) return true;}.bind(null,rec);
-				action = function() {$("#myframe").contents().find("label:Contains('"+ rec[0] +"')").next().val(rec[1]);}.bind(null,rec);
-				waitForConditionAndExecute(_i+ix, condition, action, "inputfields"+rec[0]+"->"+rec[1], "intputfields"+rec[1]);
+				condition = function(){if ($("#myframe").contents().find("label:Contains('"+ rec[0] +"')").filter(":visible").length>0) return true;};
+				action = function() {$("#myframe").contents().find("label:Contains('"+ rec[0] +"')").next().val(rec[1]);};
+				waitForConditionAndExecute(_i+ix, condition, action, "tekstveld "+rec[0]+" -> "+rec[1]);
 			});
 			_i=_i+record.inputfields.length;
 		}
 
 		/* Checkboxes */
 		if (typeof record.checkboxes !== 'undefined') {
-			++_i;
 			$.each(record.checkboxes, function(ix,rec) {
-				console.log(rec);
-				condition = function(){if ($("#myframe").contents().find("label:Contains('"+ rec +"')").filter(":visible").length>0) return true;}.bind(null,rec);
+				//console.log(rec);
+				condition = function(){if ($("#myframe").contents().find("label:Contains('"+ rec +"')").filter(":visible").length>0) return true;};
 				action = function() {
 					$("#myframe").contents().find("label:Contains('"+ rec +"')").parent().find("input[type='checkbox']").prop('checked',true);
-				}.bind(null,rec);
-				waitForConditionAndExecute(_i+ix, condition, action, "checkboxes"+rec);
+				};
+				waitForConditionAndExecute(_i+ix, condition, action, "aankruisvak "+rec);
 			});
 			_i=_i+record.checkboxes.length;
 		}
 
 		/* Advertisement text in TinyMCE textarea */
 		if (typeof record.advertisement !== 'undefined') {
-			condition = function(){if ($("#myframe").contents().find("iframe#description_ifr").length===1) return true;};
+			condition = function(){
+				if ($("#myframe").contents().find("iframe#description_ifr").length===1) { return true; }
+			};
 			action = function() {
 				var iframeTinyMCE = $("#myframe").contents().find("iframe#description_ifr");
-
-				//console.log("iframe tinymce:"+$(iframeTinyMCE).length);
-				//console.log("body tinymce:"+$(iframeTinyMCE).contents().find("body#tinymce").length);
-				//console.log(record.advertisement);
-
-				condition = function() {if ($(iframeTinyMCE).contents().find("body#tinymce").length===1) return true;};
-				action = function() {$(iframeTinyMCE).contents().find("body#tinymce").html(record.advertisement)};
-				waitForConditionAndExecute(++_i, condition, action, "addvertisement");
-			};
-			waitForConditionAndExecute(++_i, condition, action, "addvertisement");
+				if ($(iframeTinyMCE).contents().find("body#tinymce").length===1) {
+					$(iframeTinyMCE).contents().find("body#tinymce").html(record.advertisement);
+				}
+				else return false;
+			}
+			waitForConditionAndExecute(_i++, condition, action, "wachten op advertentie tekstvak");
 		}
 
 		/* Price */
 		if (typeof record.price!== 'undefined') {
 			condition = function(){if ($("#myframe").contents().find("input[name='price.value']").length===1) return true;};
 			action = function() {$("#myframe").contents().find("input[name='price.value']").val(record.price)};
-			waitForConditionAndExecute(++_i, condition, action, "price");
+			waitForConditionAndExecute(_i++, condition, action, "prijs "+record.price);
 		}
 
 		/* Pricetype */
 		if (typeof record.pricetype!== 'undefined') {
-			console.log("pricetype"+record.pricetype);
-			condition = function() {if ($("#myframe").contents().find("div.form-field div label:Contains('"+ record.pricetype +"')").length>0) return true;}.bind(null,record);
+			//console.log("pricetype"+record.pricetype);
+			condition = function() {if ($("#myframe").contents().find("div.form-field div label:Contains('"+ record.pricetype +"')").length>0) return true;};
 			action = function() {
 				$("#myframe").contents().find("div.form-field div label:Contains('"+ record.pricetype +"')" ).parent().find("input:first").prop('checked',true);
-			}.bind(null,record);
-			waitForConditionAndExecute(++_i, condition, action, "pricetype");
+			};
+			waitForConditionAndExecute(_i++, condition, action, "prijstype "+record.pricetype);
 		}
 
 		/* Paypal */
@@ -332,40 +437,119 @@ var Marktplaatstabel = (function() {
 			action = function() {
 				var check = (record.paypal=="ja") ? true : false;
 				$("#myframe").contents().find("input#accept-paypal-switch").prop('checked', check)
-			}.bind(null,record);
-			waitForConditionAndExecute(++_i, condition, action,"paypal checkbox");
+			};
+			waitForConditionAndExecute(_i++, condition, action, "paypal aankruisvak");
 		}
 
+		/* Pictures */
+		if (typeof record.pictures !== 'undefined') {
 
+			$.each(record.pictures, function(ix, picPath) {
+
+				_i++;
+
+				$.ajax({
+				     type: "POST",
+				     url:  "voegFotoToe.php",
+				     dataType: "json",
+				     tryCount : 0,
+				     retryLimit : 3,
+				     data: {
+					     xsrfToken: $("#myframe").contents().find("input[name='nl.marktplaats.xsrf.token']").val(), 
+					     mpSessionID: cookieHandler.getCookie('MpSession'),
+					     picturePath: picPath
+				     },
+				     success: function(data) {
+						condition = function() { if ( $("#myframe").contents().find("div.uploader-container.empty:first > input[name='images.ids']").length>0) return true; };
+						action = function() {
+							/* Pass index too, the first picture could return later than the second */
+							setImage(ix, data);
+						};
+						waitForConditionAndExecute(_i, condition, action, "foto toevoegen");
+				     },
+				     error : function(xhr, textStatus, errorThrown ) {
+					if (xhr.status === 500 || textStatus === 'timeout') {
+					    this.tryCount++;
+					    if (this.tryCount <= this.retryLimit) {
+						//try again
+						$.ajax(this);
+					    }            
+					}
+				    }
+				});
+			});
+		}
+
+		// Check if all waitForConditionAndExecute calls have ended
+		_checkIfReady = setInterval(function() {
+			if (isDone()) {
+				setStatusMessage("Excel record succesvol ingevuld");
+				clearInterval(_checkIfReady);
+			}
+		},1000);
+	}
+
+	function setStatusMessage(text) {
+		$("#status").text(text);
+	}
+
+	function handleRecord(record) {
+
+		var condition = null;
+		var action = null;
+		_i=0;
+		_actionSuccessCounter = 0;
+
+		if (typeof record !=='object') return false;
+
+		handleCategories(record);
+
+		/* Complete form */
+		condition = function () { return isScreenAfterCategorySelectionActive()};
+		action = function () {
+			handleForm(record);
+		}
+		waitForConditionAndExecute(_i++, condition, action, "start formulier invullen", 1000);
 	}
 
 	function onClickRecord(link) {
 
-		clearDomIntervals();
+		clearAllIntervals();
+
+		link = link.parentNode;
 		window.scrollTo(0,0);
-		$("div#excelDiv table tr td").css("font-weight","normal").parent().css("background-color","white");
-		$(link).find("td").css("font-weight","bold").parent().css("background-color","#E4ECF7");
+
+		$("div#excelDiv table tr td").css("font-weight","normal");
+		$("table.ExcelTable2007 > tbody > tr td.highlight").css("background-color","white");
+		$(link).find("td.highlight").css({"font-weight":"bold","background-color":"#E4ECF7"});
+
 		var iframe = document.getElementById("myframe");
 		$("#myframe").contents().find("a.backlink > span").click();
-
 		var linkSplit = link.id.split("-");
 		var recordToOpen = parseInt(linkSplit[1]);
 
 		// Save selection for error recovery
 		localStorage.lastRowClicked = recordToOpen+1;
 
-		var record = readRecord(recordToOpen);
-
-		if (record===false) {
-			openExcelSheet();
+		var record = null;
+		try {
 			record = readRecord(recordToOpen);
+			handleRecord(record);
 		}
-		handleRecord(record);
+		catch (error) {
+			if (error.number===-2146827864 /*Object required*/) {
+				openExcelSheet();
+				record = readRecord(recordToOpen);
+				handleRecord(record);
+			}
+			else throw error;
+		}
+
 	}
 
-	function getFirstRowToClickOn() {
+	function getRowToClickOn() {
 
-		var rowToClickOn = 2; // First record starts on row 2. First row contains headers.
+		var rowToClickOn = null;
 
 		if (typeof localStorage.domChangeError !== 'undefined' && typeof localStorage.lastRowClicked !== 'undefined') {
 			rowToClickOn = localStorage.lastRowClicked;
@@ -377,7 +561,7 @@ var Marktplaatstabel = (function() {
 	function openExcelSheet() {
 		excelApp = new ActiveXObject("Excel.Application");
 		excelWorkbook = excelApp.Workbooks.Open($("#excelFile").text());
-		excelSheet = excelWorkbook.Worksheets("Sheet1");
+		excelSheet = excelWorkbook.ActiveSheet;
 		excelSheet.Application.Visible = true;
 	}
 
@@ -395,36 +579,50 @@ var Marktplaatstabel = (function() {
 		}
 	}
 
+	function isDone() {
+		return _actionSuccessCounter===_i;
+	}
+
 	return {
+	    isDone: isDone,
 	    closeExcelSheet: closeExcelSheet,
 	    openExcelSheet: openExcelSheet,
 	    readRecord: readRecord,
 	    onClickRecord: onClickRecord,
-	    getFirstRowToClickOn: getFirstRowToClickOn
+	    getRowToClickOn: getRowToClickOn,
+	    checkRequiredColumns: checkRequiredColumns,
+	    clearAllIntervals: clearAllIntervals
 	}
 })();
 
 
-
-var _MPEOpenExcelSheetInterval = null;
-
 $(window).load(function() {
 
+	"use strict";
+
+	var _MPEOpenExcelSheetInterval = null;
+	var _checkInterval = null;
+	var nrOfCheckedRecords = null;
+	var recordsQueue=[];
+
+	/* Keep trying to open Excel sheet until user sets correct ActiveX permissions */
 	_MPEOpenExcelSheetInterval = setInterval(function() {
 		try {
 			Marktplaatstabel.openExcelSheet();
 			$("div#activeXError").hide();
 			clearInterval(_MPEOpenExcelSheetInterval);
+			Marktplaatstabel.checkRequiredColumns();
 			showExcelSheetInHtmlTable();
 		}
 		catch (error) {
 			Marktplaatstabel.closeExcelSheet();
-			console.log(error);
+
 			if (error.number===-2146827859) {
+				/* Show ActiveX explanation and keep trying to open Excel */
 				$("div#activeXError:hidden").show();
 			}
 			else if (error.number===-2146827284) {
-				$("div#fileNotFound div.errorMessage").append(error.message);
+				$("div#fileNotFound div.errorMessage div.fullErrorMessage").append(error.message);
 				$("div#fileNotFound:hidden").show();
 				clearInterval(_MPEOpenExcelSheetInterval);
 			}
@@ -440,6 +638,42 @@ $(window).load(function() {
 		}
 	}, 1000);
 
+	function displayNrOfCheckedRecords() {
+
+		if (nrOfCheckedRecords>0) {
+			$("#placeAllCheckedAds").show();
+			$("#submitAllChecked").val("Plaats "+nrOfCheckedRecords+" advertentie(s)");
+		}
+		else {
+			$("#placeAllCheckedAds").hide();
+		}
+	}
+
+        function clickOnElement(element) {
+	   	var evt = document.createEvent("MouseEvents");
+		evt.initMouseEvent("click", true, true, window, 0, 0, 0, 0, 0, false, false, false, false, 0, null);
+		element.dispatchEvent(evt);
+    	}
+
+	function processRecordsQueue(recordsQueue) {
+
+		$("table.ExcelTable2007 > tbody > tr").eq(recordsQueue[0]+1).find("td:eq(2)").click();
+
+		_checkInterval = setInterval(function() {
+
+			if (Marktplaatstabel.isDone()) {
+
+				// Click on place advertisement button
+			        var pushButton = $("#myframe").contents().find("#syi-place-ad-button")[0];
+				clickOnElement(pushButton);
+
+				clearInterval(_checkInterval);
+				recordsQueue.shift();
+				if (recordsQueue.length>0) 
+					processRecordsQueue(recordsQueue);
+			}
+		}, 1000);
+	}
 
 	function showExcelSheetInHtmlTable() {
 
@@ -447,42 +681,69 @@ $(window).load(function() {
 			Marktplaatstabel.closeExcelSheet();
 		});
 
-		// Accept cookies
-		cookieHandler.setCookie("CookieOptIn", "true", 265);	
-
-		//console.log("--Kies uw rubriek--");
-
-		record = Marktplaatstabel.readRecord(1);
-
-		$("div#nrofrecords").append("Aantal records: "+record.nrofrows+"<b>");
+		var record = Marktplaatstabel.readRecord(1);
+		$("div#nrofrecords").append("Aantal records: "+(parseInt(record.nrofrows)-1)+"<b>");
 
 		var i = 1;
 		for (; i <= record.nrofrows; i++) {
 
-			var _category = "";
-			var _title = "";
+			var category = "";
+			var title = "";
 
-			record = Marktplaatstabel.readRecord(i);
+			if (i>1) record = Marktplaatstabel.readRecord(i);
 
 			if (typeof record.category !== 'undefined')
-				_category = record.category[1];
+				category = record.category[1];
+			else continue;
 
 			if (typeof record.title !== 'undefined')
-				_title = record.title;
+				title = record.title;
 
-			var str = "<tr id='rec-"+i+"' onclick='Marktplaatstabel.onClickRecord(this);return false;'>" +
-				  "<td class='heading'>"+(i+1)+"</td>" +
-				  "<td>"+_title+"</td><td>"+_category+"</td>" +
+			var str = "<tr id='rec-"+i+"'>" +
+				  "<td><input id='checkbox-"+i+"' class='selectable' type='checkbox'></td>"+
+				  "<td class='heading hover' onclick='Marktplaatstabel.onClickRecord(this);return false;'>"+(i+1)+"</td>" +
+				  "<td class='highlight hover' onclick='Marktplaatstabel.onClickRecord(this);return false;'>"+title+"</td>" +
+				  "<td class='highlight hover' onclick='Marktplaatstabel.onClickRecord(this);return false;'>"+category+"</td>" +
 				  "</tr>";
 
-			$("div#excelDiv > div.body > table.ExcelTable2007 > tbody").append(str);
-			$(".ExcelTable2007 tr").hover(excelTable2007MouseEnter, excelTable2007MouseLeave);
+			$("table.ExcelTable2007 > tbody").append(str);
+			$("table.ExcelTable2007 > tbody > tr > td.hover").hover(excelTable2007MouseEnter, excelTable2007MouseLeave);
 		}
 
 		// Unhide excel table
-		$("div#excelDiv > div.body > table").css("display", "inline-block");
+		$("div#tableBox").css("display", "block");
 
-		// Click first record
-		$("div#excelDiv > div.body > table > tbody > tr").eq(Marktplaatstabel.getFirstRowToClickOn()).click();
+		$("#submitAllChecked").click(function() {
+			recordsQueue=[];
+			$("input[type='checkbox'].selectable:checked").each(function(ix, element) {
+                                var id = $(element).parent().parent().prop("id");
+				/* Strip 'rec-' off */
+				var rowToClickOn = parseInt(id.substring(4,id.length));
+				recordsQueue.push(rowToClickOn);
+			});
+			processRecordsQueue(recordsQueue);
+		});
+
+
+		$("#checkAll").click(function(ix, inputElement) {
+			var count=0;
+			$("table.ExcelTable2007 input[type='checkbox']:gt(1):enabled").prop("checked", function(i,val) {
+				if (!val) ++count;
+				return !val;
+			});
+			nrOfCheckedRecords = count;
+			displayNrOfCheckedRecords();
+		});
+
+		$("input[type='checkbox'].selectable").change(function() {
+			if ($(this).is(":checked")) ++nrOfCheckedRecords;
+			else --nrOfCheckedRecords;
+			displayNrOfCheckedRecords();
+		});
+
+		/* Error recovery */
+		var rowToClickOn = Marktplaatstabel.getRowToClickOn();
+		if (rowToClickOn!==null)
+			$("table.ExcelTable2007 > tbody > tr").eq(rowToClickOn).find("td:eq(2)").click();
 	}
 });
