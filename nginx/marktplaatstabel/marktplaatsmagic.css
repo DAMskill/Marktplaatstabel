@@ -1,0 +1,150 @@
+/*******************************************************************************
+ * Copyright (c) 2014 Ivo van Kamp
+ *
+ * This file is part of Marktplaatstabel.
+ *
+ * Marktplaatstabel is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Marktplaatstabel is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *******************************************************************************/
+
+body {
+	position:absolute;
+	padding:0;
+	margin:0;
+	width:1330px;
+	scrollbar-base-color: #CCCCCC !important;
+}
+
+div#excelDiv {
+	margin:0;
+	white-space:nowrap;
+	float:left;
+	overflow-y:scroll;
+	overflow-x:hidden;
+	max-height:768px;
+}
+
+div#excelDiv div.headerRight {
+	height:49px;
+	width:475px;
+	/* background-color: #F7CAE9; Pink */
+	background-color: #f2b479;
+	border-bottom:1px solid #a6784b;
+	border-right:1px solid #CCCCCC;
+	margin-right:0;
+}
+
+div#excelDiv div.headerRight div.title {
+	float:left;
+	font-weight:bold;
+	margin:17px 0 17px 10px;
+}
+
+div#excelDiv div.headerRight div.topMenu {
+	float:right;
+	font-family: Arial, sans-serif;
+	font-size:13px;
+	margin:17px 17px 0 0;
+}
+
+div#excelDiv div.headerRight div.topMenu a {
+	color: black;
+}
+
+div#excelDiv div.headerRight img#logo{
+	float: left;
+	margin: 10px 0 17px 17px;
+}
+
+div#headerBottom {
+	height:9px;
+	border-bottom: 1px solid #B1C4DF;
+	border-right:1px solid #CCCCCC;
+	background-color: #E1E8F5;
+	width:475px;
+}
+
+div#excelDiv div.body {
+	margin:17px 5px 0 17px;
+	width:457px;
+}
+
+div#nrofrecords {
+	margin-bottom:10px;
+	font-style: bold;
+}
+
+div#help {
+	white-space: normal;
+	font-family: Verdana;
+	font-size: 11pt;
+}
+
+div#browserNotSupported {
+	display:none;
+}
+
+div#activeXError {
+	display:none;
+}
+
+div#fileNotFound {
+	display:none;
+}
+
+div#unknown {
+	display:none;
+}
+
+div.errorMessage {
+	margin:10px 10px 10px 0;
+	padding:10px;
+	border:2px solid red;
+	white-space:wrap;
+	word-break:break-all;
+}
+
+div#activeXError ul {
+	margin-bottom:10px;
+}
+
+div#activeXError > ul > li {
+	margin-bottom:10px;
+}
+
+iframe#myframe {
+	width:820px;
+	height:768px;
+	float:left;
+}
+
+div#excelFileHeader {
+	clear:both;
+}
+
+div#excelFile {
+	display:none;
+}
+
+iframe#responsiveFilemanager {
+	margin-top:2px;
+	width:1300px;
+	height:750px;
+}
+
+#maintitle {
+	font-weight:bold;
+	font-size:18px;
+	margin:20px 0 10px 0;
+}
+

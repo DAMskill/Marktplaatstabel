@@ -1,0 +1,80 @@
+
+/* Quick CSS Tools for Making Your Web Tables Look Just Like Excel
+ * http://www.cogniview.com/articles-resources/quick-css-tools-for-making-your-web-tables-look-just-like-excel
+ */
+
+.ExcelTable2007 {
+	display: none;
+	border: 1px solid #B0CBEF;
+	border-width: 1px 0px 0px 1px;
+	border-collapse:collapse; 
+	font-size: 11pt;
+	font-family: Calibri;
+	letter-spacing:0.05em;
+	border-spacing: 0px;
+	border-collapse: collapse;
+	margin-bottom:30px;
+}
+
+.ExcelTable2007 TH {
+	background-image: url(excel-2007-header-bg.gif);
+	background-repeat: repeat-x; 
+	font-weight: normal;
+	font-size: 14px;
+	border: 1px solid #9EB6CE;
+	border-width: 0px 1px 1px 0px;
+	height: 17px;
+}
+
+.ExcelTable2007 :hover {
+	  cursor: pointer;
+}
+
+/* First row not clickable */
+.ExcelTable2007 TH:hover {
+	cursor: default;
+}
+
+/* Second row also not clickable */
+.ExcelTable2007 TR:nth-child(2) * {
+	cursor: default;
+}
+
+.ExcelTable2007 TD {
+	border: 0px;
+	padding: 0px 10px 0px 5px;
+	border: 1px solid #D0D7E5;
+	border-width: 0px 1px 1px 0px;
+
+}
+
+.ExcelTable2007 TD:nth-child(2) {
+	max-width: 200px;
+	overflow: hidden;
+}
+
+.ExcelTable2007 TD:nth-child(3) {
+	max-width: 180px;
+	overflow: hidden;
+}
+
+.ExcelTable2007 TD B {
+	border: 0px;
+	font-weight: bold;
+}
+
+.ExcelTable2007 TD.heading {
+	background-color: #E4ECF7;
+	text-align: center;
+	border: 1px solid #9EB6CE;
+	border-width: 0px 1px 1px 0px;
+	padding: 0;
+}
+
+.ExcelTable2007 TH.heading {
+	background-image: url(excel-2007-header-left.gif);
+	background-repeat: none;
+	background-color: #a9c4e9;
+	min-width: 23px;
+}
+
