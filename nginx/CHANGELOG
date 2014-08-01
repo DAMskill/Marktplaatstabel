@@ -1,8 +1,15 @@
+01-aug-2014
+   Version 1.2
+	- Adjusted timer delay from 200ms to 500ms
+	- Code cleanup
+
 28-jul-2014
    Version 1.1
 	- Selection and placing of multiple ads at once
 	- Adding and uploading ad pictures
 	- Improved NGINX and PHP configuration
+	- New CSS styling
+	- Various bugfixes
 	- Code cleanup and refactoring
 
 18-jul-2014

@@ -83,7 +83,7 @@ var Marktplaatstabel = (function() {
 	var _i = 0;
 	var _actionSuccessCounter = 0;
 	var _domChangeTimer = [];
-	var _domChangeDelay = 200;
+	var _domChangeDelay = 500;
 	var _checkIfReady = null
 
 	var record = null;
@@ -116,6 +116,7 @@ var Marktplaatstabel = (function() {
 	   _domChangeTimer[id] = setInterval(function() {
 
 		setStatusMessage("Bezig met: "+text);
+		try {
 			if(condition()) {
 				//console.log("after cond id:"+id+" "+text);
 				if (action()!==false) {
@@ -123,7 +124,6 @@ var Marktplaatstabel = (function() {
 					++_actionSuccessCounter;
 				}
 			}
-		try {
 		}
 		catch(error) {
 			// Clicking records too fast generating too many timers
@@ -157,18 +157,20 @@ var Marktplaatstabel = (function() {
 
 	function getColumnPositions() {
 
-		var columnPositions = {};
-		columnPositions.categoryColumn      = getColumnNumberByName('Rubriek');
-		columnPositions.titleColumn         = getColumnNumberByName('Titel');
-		columnPositions.dropdownColumn      = getColumnNumberByName('Keuzelijsten');
-		columnPositions.checkboxColumn      = getColumnNumberByName('Aankruisvakjes');
-		columnPositions.advertisementColumn = getColumnNumberByName('Advertentie');
-		columnPositions.priceColumn         = getColumnNumberByName('Vraagprijs');
-		columnPositions.pricetypeColumn     = getColumnNumberByName('Prijssoort');
-		columnPositions.paypalColumn        = getColumnNumberByName('Paypal');
-		columnPositions.inputColumn         = getColumnNumberByName('Overige invoervelden');
-		columnPositions.addPictureColumn    = getColumnNumberByName('Voeg foto toe');
-		columnPositions.firstPictureColumn  = parseInt(columnPositions.addPictureColumn)+1;
+		if (columnPositions === null) {
+			columnPositions = {};
+			columnPositions.categoryColumn      = getColumnNumberByName('Rubriek');
+			columnPositions.titleColumn         = getColumnNumberByName('Titel');
+			columnPositions.dropdownColumn      = getColumnNumberByName('Keuzelijsten');
+			columnPositions.checkboxColumn      = getColumnNumberByName('Aankruisvakjes');
+			columnPositions.advertisementColumn = getColumnNumberByName('Advertentie');
+			columnPositions.priceColumn         = getColumnNumberByName('Vraagprijs');
+			columnPositions.pricetypeColumn     = getColumnNumberByName('Prijssoort');
+			columnPositions.paypalColumn        = getColumnNumberByName('Paypal');
+			columnPositions.inputColumn         = getColumnNumberByName('Overige invoervelden');
+			columnPositions.addPictureColumn    = getColumnNumberByName('Voeg foto toe');
+			columnPositions.firstPictureColumn  = parseInt(columnPositions.addPictureColumn)+1;
+		}
 		return columnPositions;
 	}
 
@@ -177,8 +179,7 @@ var Marktplaatstabel = (function() {
 		var record = {};
 
 		/* Fetch column position */
-		if (columnPositions === null)
-			columnPositions = getColumnPositions();
+		columnPositions = getColumnPositions();
 
 		record.nrofrows      = excelSheet.Cells.Find("*", excelSheet.Cells(1), -4163, 1, 1, 2).Row
 
@@ -347,8 +348,6 @@ var Marktplaatstabel = (function() {
 
 		var condition = null;
 		var action = null;
-		var condition2 = null;
-		var action2 = null;
 
 		/* Title */
 		if (typeof record.title!== 'undefined') {
@@ -376,8 +375,6 @@ var Marktplaatstabel = (function() {
 		/* Input elements */
 		if (typeof record.inputfields !== 'undefined') {
 			$.each(record.inputfields, function(ix,rec) {
-				//condition = function(){if ($("#myframe").contents().find("label.form-label:Contains('"+ rec[0] +"')").filter(":visible").length>0) return true;}.bind(null,rec);
-				//action = function() {$("#myframe").contents().find("label.form-label:Contains('"+ rec[0] +"')").next().val(rec[1]);}.bind(null,rec);
 				condition = function(){if ($("#myframe").contents().find("label:Contains('"+ rec[0] +"')").filter(":visible").length>0) return true;};
 				action = function() {$("#myframe").contents().find("label:Contains('"+ rec[0] +"')").next().val(rec[1]);};
 				waitForConditionAndExecute(_i+ix, condition, action, "tekstveld "+rec[0]+" -> "+rec[1]);
@@ -448,6 +445,7 @@ var Marktplaatstabel = (function() {
 
 				_i++;
 
+				setStatusMessage("uploaden foto's");
 				$.ajax({
 				     type: "POST",
 				     url:  "voegFotoToe.php",
@@ -465,7 +463,7 @@ var Marktplaatstabel = (function() {
 							/* Pass index too, the first picture could return later than the second */
 							setImage(ix, data);
 						};
-						waitForConditionAndExecute(_i, condition, action, "foto toevoegen");
+						waitForConditionAndExecute(_i, condition, action, "foto toevoegen aan formulier (ID: "+data.id+")");
 				     },
 				     error : function(xhr, textStatus, errorThrown ) {
 					if (xhr.status === 500 || textStatus === 'timeout') {
@@ -544,7 +542,6 @@ var Marktplaatstabel = (function() {
 			}
 			else throw error;
 		}
-
 	}
 
 	function getRowToClickOn() {
