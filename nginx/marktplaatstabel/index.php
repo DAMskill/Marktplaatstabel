@@ -19,20 +19,37 @@
  *******************************************************************************/
 ?>
 <?php require('ResponsiveFilemanager/config/config.php'); ?>
-<!DOCTYPE HTML">
+<!DOCTYPE HTML>
 <html>
 
 <?php  if (isset($_GET["file"])) { /* HTTPS://LOCALHOST MARKTPLAATS */ ?>
 
 	<head>
-		<!-- <script type='text/javascript' src='https://localhost/marktplaatsmagic2-min.js'></script> -->
-		<script type='text/javascript' src='https://localhost/marktplaatstabel/jquery-2.1.1.js'></script> 
-		<script type='text/javascript' src='https://localhost/marktplaatstabel/marktplaatsmagic.js'></script>
-		<script type='text/javascript' src='https://localhost/marktplaatstabel/excel-2007-hover-css.js'></script>
-		<link type='text/css' href='https://localhost/marktplaatstabel/marktplaatsmagic.css' rel='stylesheet'>
-		<link type='text/css' href='https://localhost/marktplaatstabel/excel-2007.css' rel='stylesheet'>
-		<title>Marktplaatstabel</title>
 	        <meta content="Marktplaatstabel - Marktplaats bedienen met excel!">
+		<script type='text/javascript' src='https://localhost/marktplaatstabel/js/jquery-2.1.1.js'></script> 
+		<script type='text/javascript' src='https://localhost/marktplaatstabel/js/CookieHandler.js'></script>
+		<script type='text/javascript' src='https://localhost/marktplaatstabel/js/HTMLTableHandler.js'></script>
+		<script type='text/javascript' src='https://localhost/marktplaatstabel/js/Excel.js'></script>
+		<script type='text/javascript' src='https://localhost/marktplaatstabel/js/EventHandler.js'></script>
+		<script type='text/javascript' src='https://localhost/marktplaatstabel/js/FormFiller.js'></script>
+		<script type='text/javascript' src='https://localhost/marktplaatstabel/js/excel-2007-hover-css.js'></script>
+		<script>
+                    $(window).ready(function() {
+
+                        Excel.init();
+
+                        $("#myframe").on("load", function() {
+                            var record = HTMLTableHandler.getRecord();
+                            if (record !== null) {
+                                FormFiller.fillForm(record);
+                            }
+                        });
+
+                    });
+                </script>
+		<link type='text/css' href='https://localhost/marktplaatstabel/css/marktplaatsmagic.css' rel='stylesheet'>
+		<link type='text/css' href='https://localhost/marktplaatstabel/css/excel-2007.css' rel='stylesheet'>
+		<title>Marktplaatstabel</title>
 	</head>
 	<body>
 		<iframe id="myframe" src="https://localhost/syi/plaatsAdvertentie.html"></iframe>
@@ -49,7 +66,7 @@
 				<div id="excelFile"><?php echo "C:\Users\Public\Documents".$upload_dir.$_GET["file"]; ?></div>
 				<div id="excelFileHeader">Excel sheet: <b><?php echo $_GET["file"]; ?></b></div>
                                 <div id="help">
-					<div id="activeXError"><?php require('ActiveXError.php'); ?></div>
+					<div id="activeXError"><?php require('php/ActiveXError.php'); ?></div>
 					<div id="browserNotSupported">
 						<div class="errorMessage">Voor deze toepassing kunt u uitsluitend Internet Explorer gebruiken.</div>
 					</div>
@@ -77,13 +94,13 @@
 
 	</body>
 
-<?php } else { /* HTTP://LOCALHOST RESPONSIVE FILE MANAGER UPLOAD */ ?>
+<?php } else { /* HTTP://LOCALHOST RESPONSIVE FILE MANAGER */ ?>
 
 	<head>
 		<title>Marktplaatstabel</title>
 	        <meta content="Marktplaatstabel - Marktplaats bedienen met excel!"></meta>
-		<script type='text/javascript' src='http://localhost/marktplaatstabel/jquery-2.1.1.js'></script> 
-		<link type='text/css' href='http://localhost/marktplaatstabel/marktplaatsmagic.css' rel='stylesheet'>
+		<script type='text/javascript' src='http://localhost/marktplaatstabel/js/jquery-2.1.1.js'></script> 
+		<link type='text/css' href='http://localhost/marktplaatstabel/css/marktplaatsmagic.css' rel='stylesheet'>
 	</head>
 	<body>
 

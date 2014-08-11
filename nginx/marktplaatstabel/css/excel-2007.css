@@ -27,7 +27,7 @@
 }
 
 .ExcelTable2007 TH {
-	background-image: url(excel-2007-header-bg.gif);
+	background-image: url(../img/excel-2007-header-bg.gif);
 	background-repeat: repeat-x; 
 	font-weight: normal;
 	font-size: 14px;
@@ -82,9 +82,34 @@
 }
 
 .ExcelTable2007 TH.heading {
-	background-image: url(excel-2007-header-left.gif);
+	background-image: url(../img/excel-2007-header-left.gif);
 	background-repeat: none;
 	background-color: #a9c4e9;
 	min-width: 23px;
+}
+
+.ExcelTable2007 TR.error {
+    background-color: #fcd1d1;
+}
+
+.ExcelTable2007 TD.active {
+    background-color: #E4ECF7;
+    font-weight:bold;
+}
+
+.ExcelTable2007 TD.orangeIndexBackground {
+    background-color: #f3c873;
+}
+
+.ExcelTable2007 TD.topLeftBottomBorder {
+    border-top: 2px solid black;
+    border-left: 2px solid black;
+    border-bottom: 2px solid black;
+}
+
+.ExcelTable2007 TD.topRightBottomBorder {
+    border-top: 2px solid black;
+    border-right: 2px solid black;
+    border-bottom: 2px solid black;
 }
 

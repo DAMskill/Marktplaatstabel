@@ -1,3 +1,9 @@
+11-aug-2014
+   Version 1.3
+        - Improved code structure with module pattern. Each module in separate file.
+	- Use of MutationObserver for category selection.
+	- Various bugfixes.
+
 01-aug-2014
    Version 1.2
 	- Adjusted timer delay from 200ms to 500ms
