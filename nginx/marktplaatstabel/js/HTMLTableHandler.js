@@ -249,7 +249,7 @@ var HTMLTableHandler = (function() {
 
 		var recordsQueue = null;
 
-		if (typeof localStorage.onErrorRecordsQueue !== 'undefined') {
+		if (localStorage.getItem("onErrorRecordsQueue") !== null) {
 			recordsQueue = JSON.parse(localStorage.onErrorRecordsQueue);
 			delete localStorage.onErrorRecordsQueue;
 		}
@@ -262,7 +262,7 @@ var HTMLTableHandler = (function() {
 
 		var rowToClickOn = null;
 
-		if (typeof localStorage.domChangeError !== 'undefined' && typeof localStorage.lastRowClicked !== 'undefined') {
+		if (localStorage.getItem("domChangeError") !== null && localStorage.getItem("lastRowClicked") !== null) {
 			rowToClickOn = localStorage.lastRowClicked;
 			delete localStorage.domChangeError;
 		}

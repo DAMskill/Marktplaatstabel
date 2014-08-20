@@ -497,30 +497,47 @@ $(document).ready(function(){
 	$(window).resize(function(){fix_colums(28); });
 	fix_colums(14);
 
-	/* Onclick for marktplaatstabel */
-	function onClickFile() {
-		var _this = $(this);
 
-		console.log("trying");
+
+
+	/* Marktplaatstabel */
+	function checkForExcelFile($el) {
+
 		// check extension clicked file
-		var filenameParts = _this.attr('data-file').split(".");
+		var filenameParts = $el.attr('data-file').split(".");
 		var extension = filenameParts[filenameParts.length-1];
 		// if excel file
 		if ($.inArray(extension, ["xlsx","xls","xlsm"])>-1) {
                 	var folder_path = $('#sub_folder').val()+$('#fldr_value').val();
-			window.parent.location = "https://localhost/marktplaatstabel/?file="+folder_path+_this.attr('data-file');
+			window.parent.location = "https://localhost/marktplaatstabel/?file="+folder_path+$el.attr('data-file');
 		}
-
-		window[_this.attr('data-function')](_this.attr('data-file'),_this.attr('data-field_id'));
 	}
 
-	$('ul.grid').on('click','.link',onClickFile);
-
-	/* Use the preceding link when div.box is clicked */
-	$('ul.grid div.box').on('click', function() {
-		onClickFile.call($(this).prev());
-	});
+        function handleFileLink($el) {
+                checkForExcelFile($el);
+		window[$el.attr('data-function')]($el.attr('data-file'), $el.attr('data-field_id'));
+        }
 	
+	$('ul.grid .link').on('click',function(){
+                handleFileLink($(this));
+	});
+
+	$('ul.grid div.box').on('click',function(e){
+
+                var folderLink = $(this).find(".folder-link");
+                if (folderLink.length!==0) {
+                    document.location = $(folderLink).prop("href");
+                }
+                else {
+                    var fileLink = $(this).find(".link");
+                    if (fileLink.length!==0) 
+                        handleFileLink(fileLink);
+                }
+        });
+
+
+
+
 	if ($('#clipboard').val() == 1){
 		toggle_clipboard(true);
 	}

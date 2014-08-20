@@ -98,7 +98,7 @@
 
 	<head>
 		<title>Marktplaatstabel</title>
-	        <meta content="Marktplaatstabel - Marktplaats bedienen met excel!"></meta>
+	        <meta content="Marktplaatstabel - Marktplaats bedienen met excel!">
 		<script type='text/javascript' src='http://localhost/marktplaatstabel/js/jquery-2.1.1.js'></script> 
 		<link type='text/css' href='http://localhost/marktplaatstabel/css/marktplaatsmagic.css' rel='stylesheet'>
 	</head>
