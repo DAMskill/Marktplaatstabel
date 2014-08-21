@@ -1,3 +1,11 @@
+21-aug-2014
+   Version 1.3.2
+        - Nginx configuration bugfix
+
+20-aug-2014
+   Version 1.3.1
+        - Small bugfixes
+
 11-aug-2014
    Version 1.3
         - Improved code structure with module pattern. Each module in separate file.
