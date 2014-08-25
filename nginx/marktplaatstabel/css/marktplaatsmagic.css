@@ -180,6 +180,10 @@ div#placeAllCheckedAds {
 	clear:all;
 }
 
+div#notLoggedInWarning {
+        margin:5px 5px 5px 0;
+}
+
 div#tableBox {
 	clear:both;
 	display:none;

@@ -79,7 +79,10 @@
 				</div>
 				<div id="nrofrecords"></div>
 				<div id="status"></div>
-                                <div id="placeAllCheckedAds"><input id="submitAllChecked" type="submit" value="Plaats advertenties"></div>
+                                <div id="placeAllCheckedAds">
+                                    <input id="submitAllCheckedButton" type="submit" value="Plaats advertenties">
+                                    <div id="notLoggedInWarning">U dient in te loggen voordat u advertenties kunt plaatsen.</div>
+                                </div>
                                 <div id="tableBox">
 					<table class="ExcelTable2007">
 						<tbody>

@@ -19,17 +19,28 @@
 
 var HTMLTableHandler = (function() {
 
+        "use strict";
+
 	var record = null;
-        var checkIfReady = null;
+        var refreshPlaceAdsButtonInterval = null;
 	var checkInterval = null;
         var nrOfCheckedRecords = null;
         var recordsQueue=[];
 
-	function displayNrOfCheckedRecords() {
+	function refreshPlaceAdsButton() {
 
 		if (nrOfCheckedRecords>0) {
-			$("#placeAllCheckedAds").show();
-			$("#submitAllChecked").val("Plaats "+nrOfCheckedRecords+" advertentie(s)");
+			$("div#placeAllCheckedAds").show();
+                        $("div#notLoggedInWarning").hide();
+			$("input#submitAllCheckedButton").val("Plaats "+nrOfCheckedRecords+" advertentie(s)");
+
+                        if (!userIsLoggedIn()) {
+                            $("input#submitAllCheckedButton").prop("disabled", true);
+                            $("div#notLoggedInWarning").show();
+                        }
+                        else {
+                            $("input#submitAllCheckedButton").prop("disabled", false);
+                        }
 		}
 		else {
 			$("#placeAllCheckedAds").hide();
@@ -104,14 +115,17 @@ var HTMLTableHandler = (function() {
 
         function validateForm() {
                 var myframeWindow = document.getElementById("myframe").contentWindow;
-                //myframeWindow.AURORA.Pages.syi.childViews.descriptionEditor.init();
-                //myframeWindow.AURORA.Pages.syi.childViews.descriptionEditor._initValidation();
                 myframeWindow.AURORA.Pages.syi.childViews.form.beforeSubmit();
                 if (!myframeWindow.AURORA.Pages.syi.childViews.form.noErrorsFound()) {
                     FormFiller.setErrorMessage("Formulier validatie mislukt");
                     return false;
                 }
                 return true;
+        }
+
+        function userIsLoggedIn() {
+                var loggedInCookie = CookieHandler.getCookie("LoggedIn");
+                return loggedInCookie==="true";
         }
 
 	function showExcelSheetInHtmlTable() {
@@ -152,7 +166,7 @@ var HTMLTableHandler = (function() {
 		// Unhide excel table
 		$("div#tableBox").css("display", "block");
 
-		$("#submitAllChecked").click(function() {
+		$("input#submitAllCheckedButton").click(function() {
 			recordsQueue=[];
 			$("input[type='checkbox'].selectable:checked").each(function(ix, element) {
                                 var id = $(element).parent().parent().prop("id");
@@ -171,13 +185,13 @@ var HTMLTableHandler = (function() {
 				return !val;
 			});
 			nrOfCheckedRecords = count;
-			displayNrOfCheckedRecords();
+			refreshPlaceAdsButton();
 		});
 
 		$("input[type='checkbox'].selectable").change(function() {
 			if ($(this).is(":checked")) ++nrOfCheckedRecords;
 			else --nrOfCheckedRecords;
-			displayNrOfCheckedRecords();
+			refreshPlaceAdsButton();
 		});
 
 		/* Error recovery */
@@ -188,6 +202,11 @@ var HTMLTableHandler = (function() {
 		var recordsQueue = getErrorRecoveryRecordsQueue();
 		if (recordsQueue!==null)
 			processRecordsQueue(recordsQueue);
+
+                // Check if logged in every 2 seconds and enable/disable place ads button.
+                refreshPlaceAdsButtonInterval = setInterval(function() {
+                    HTMLTableHandler.refreshPlaceAdsButton();
+                }, 2000);
 	}
 
         function clickOnElement(element) {
@@ -280,7 +299,7 @@ var HTMLTableHandler = (function() {
 	    "processRecordsQueue": processRecordsQueue,
 	    "getErrorRecoveryRecordsQueue": getErrorRecoveryRecordsQueue,
 	    "getErrorRecoveryRowToClickOn": getErrorRecoveryRowToClickOn,
-            "showExcelSheetInHtmlTable": showExcelSheetInHtmlTable
+            "showExcelSheetInHtmlTable": showExcelSheetInHtmlTable,
+            "refreshPlaceAdsButton": refreshPlaceAdsButton
         }
 })();
-
