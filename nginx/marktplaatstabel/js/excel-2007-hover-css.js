@@ -20,7 +20,10 @@
 function excelTable2007MouseEnter() {
 
 	$("td", this.parentNode).each(function(ix, value) {
+
+                // Skip first two rows (column names and table headers)
 		if ($(this).parent().index()<=1) return;
+
 		if (ix===1) {
 			$(this).addClass("orangeIndexBackground");
 			return;

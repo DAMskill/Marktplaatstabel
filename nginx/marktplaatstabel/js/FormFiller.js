@@ -30,8 +30,6 @@ var FormFiller = (function() {
         subtree: true
     }
 
-    var checkIfReady = null;
-
     function setStatusMessage(text) {
         $("#status").css("color","#21469e").text(text);
     }
@@ -40,9 +38,15 @@ var FormFiller = (function() {
         $("#status").css("color","#d01f3c").text(text);
     }
 
+    function setColorStatusMessageRed() {
+        $("#status").css("color","#d01f3c");
+    }
+
     function waitForConditionAndExecute(uniqueIDString, condition, action, time) {
-        setStatusMessage("Bezig met: " + uniqueIDString);
-        EventHandler.waitForConditionAndExecute(uniqueIDString, condition, action, time);
+        var callback = function() {
+            FormFiller.setStatusMessage("Bezig met: " + uniqueIDString);
+        }
+        EventHandler.waitForConditionAndExecute(uniqueIDString, condition, action, time, callback);
     }
 
     /* Example record
@@ -72,8 +76,6 @@ var FormFiller = (function() {
     */
     function fillForm(record) {
 
-        clearInterval(checkIfReady);
-
         // iFrame showing Marktplaats.nl through localhost proxy
         var myframeWindow = document.getElementById("myframe").contentWindow;
 
@@ -89,7 +91,6 @@ var FormFiller = (function() {
         /* Walk through rules per URL, and pass record and rule object to the
          * handler.
          */
-        var a=0;
         $.each(RulesWithHandlerPerURL, function(URLregexp, formFillRuleGroup) {
             if (myframeWindow.document.URL.match(URLregexp) !== null) {
                 $.each(formFillRuleGroup, function(ix, rule) {
@@ -97,14 +98,6 @@ var FormFiller = (function() {
                 });
             }
         });
-
-        // Check if EventHandler.waitForConditionAndExecute() is active
-        checkIfReady = setInterval(function() {
-            if (EventHandler.isActive()===false) {
-                setStatusMessage("Excel record succesvol ingevuld");
-                clearInterval(checkIfReady);
-            }
-        }, 1000);
     }
 
     /* Rules: each rule has a name which corresponds with a field in
@@ -142,7 +135,7 @@ var FormFiller = (function() {
             }
         },
         "dropdowns": {
-            "action": function(item) {
+            "action": function(item, uniqueIDString) {
 
                 var action = function() {
                     var dropdownLabel = $$("label.form-label:Contains('" + item[0] + "')");
@@ -157,14 +150,14 @@ var FormFiller = (function() {
                 var condition = function() {
                     if ($$("label.form-label:Contains('" + item[0] + "')").filter(":visible").length > 0) return true;
                 };
-                waitForConditionAndExecute("keuzelijst " + item[0], condition, action);
+                waitForConditionAndExecute(uniqueIDString, condition, action);
             },
             /* Used to initialize EventHandler.domChangeTimers object with an empty
              * string id property for each dropdown. These will be removed when
              * EventHandler.waitForConditionAndExecute action finishes successfully.
              */
             "getUniqueSlotID": function(item) {
-                return "keuzelijst " + item[0];
+                return "keuzelijst '" + item[0] + "'";
             }
         },
         "advertisement": {
@@ -222,7 +215,7 @@ var FormFiller = (function() {
     var PictureRules = {
         "pictures": {
             "action": function(ix, picPath, uniqueIDString) {
-                setStatusMessage("uploaden foto's");
+                setStatusMessage("Bezig met: uploaden foto's");
                 postPicture(ix, picPath, uniqueIDString);
             },
             "getUniqueSlotID": function(ix) {
@@ -306,6 +299,7 @@ var FormFiller = (function() {
     }
 
     function pictureHandler(rule, record) {
+        console.log("pictureHandler");
         if ("pictures" in record) {
             $.each(record.pictures, function(ix, picPath) {
                 reserveSlot(rule.pictures.getUniqueSlotID(ix));
@@ -317,6 +311,7 @@ var FormFiller = (function() {
     }
 
     function formHandler(rules, record) {
+        console.log("formHandler");
 
         $.each(rules, function(name, rule) {
 
@@ -382,7 +377,9 @@ var FormFiller = (function() {
     return {
         "fillForm": fillForm,
         "setStatusMessage": setStatusMessage,
-        "setErrorMessage": setErrorMessage
+        "setColorStatusMessageRed": setColorStatusMessageRed,
+        "setErrorMessage": setErrorMessage,
+        "waitForConditionAndExecute": waitForConditionAndExecute
     }
 
 })();

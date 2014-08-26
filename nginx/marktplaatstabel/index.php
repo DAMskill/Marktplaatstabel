@@ -35,16 +35,10 @@
 		<script type='text/javascript' src='https://localhost/marktplaatstabel/js/excel-2007-hover-css.js'></script>
 		<script>
                     $(window).ready(function() {
-
                         Excel.init();
-
                         $("#myframe").on("load", function() {
-                            var record = HTMLTableHandler.getRecord();
-                            if (record !== null) {
-                                FormFiller.fillForm(record);
-                            }
+                            HTMLTableHandler.loadCurrentRecord();
                         });
-
                     });
                 </script>
 		<link type='text/css' href='https://localhost/marktplaatstabel/css/marktplaatsmagic.css' rel='stylesheet'>

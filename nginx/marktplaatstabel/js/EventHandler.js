@@ -47,12 +47,16 @@ var EventHandler = (function() {
         domChangeTimers[uniqueID] = null;
     }
 
-    function waitForConditionAndExecute(uniqueIDString, condition, action, time) {
+    function waitForConditionAndExecute(uniqueIDString, condition, action, delayInMilliseconds, callback) {
 
         var uniqueID = init(uniqueIDString);
 
         domChangeTimers[uniqueID] = setInterval(function() {
             try {
+
+                if (typeof callback==="function")
+                    callback();
+
                 if (condition()) {
                     if (action() !== false) {
                         clearInterval(domChangeTimers[uniqueID]);
@@ -62,10 +66,9 @@ var EventHandler = (function() {
             } catch (error) {
                 // Clicking records too fast generating too many timers
                 // will result in IE Permission denied errors.
-                localStorage.domChangeError = true;
                 location.reload(true);
             }
-        }, time || domChangeDelay);
+        }, delayInMilliseconds || domChangeDelay);
     }
 
     function clearAllIntervals() {
@@ -80,11 +83,16 @@ var EventHandler = (function() {
         return domChangeTimers !== null && Object.keys(domChangeTimers).length > 0;
     }
 
+    function getDomChangeTimers() {
+        return domChangeTimers;
+    }
+
     return {
         "waitForConditionAndExecute": waitForConditionAndExecute,
         "isActive": isActive,
         "clearAllIntervals": clearAllIntervals,
-        "reserveSlot": reserveSlot
+        "reserveSlot": reserveSlot,
+        "getDomChangeTimers": getDomChangeTimers
     }
 
 })();
