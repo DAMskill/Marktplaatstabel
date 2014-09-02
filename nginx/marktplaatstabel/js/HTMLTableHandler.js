@@ -21,28 +21,104 @@ var HTMLTableHandler = (function() {
 
         "use strict";
 
-	var record = null;
-        var refreshPlaceAdsButtonInterval = null;
-        var nrOfCheckedRecords = null;
-        var recordsQueue=[];
+        function HTMLTableHandler(excelReader) {
 
-	var checkIfRecordFromQueueIsDone = null;
-	var checkIfRecordFromQueueIsDoneInterval = 1000;
+            this.excelReader = excelReader;
+            this.record = null;
+            this.eventHandler = null;
+            this.refreshPlaceAdsButtonInterval = null;
+            this.nrOfCheckedRecords = null;
 
-        // Number of checkIfRecordFromQueueIsDoneInterval executions
-        // before aborting.
-        var maxRecordsQueueIntervalCounter = 4*60; // (*1000 = 4 minutes)
+            // Queue variables
+            this.recordsQueue=[];
+            this.checkIfRecordFromQueueIsDone = null;
+            this.checkIfRecordFromQueueIsDoneInterval = 1000;
+            // Number of checkIfRecordFromQueueIsDoneInterval executions
+            // before aborting.
+            this.maxRecordsQueueIntervalExecutions = 4*60; // (*1000 = 4 minutes)
 
-        var checkIfRecordReady = null;
-        var checkIfRecordReadyInterval = 1000;
+            this.checkIfRecordReady = null;
+            this.checkIfRecordReadyInterval = 1000;
+            this.loadCurrentRecordFunction = null;
+            this.currentFormWindow = null;
+            this.formFiller = null; // FormFiller instance initialized in onClickRecord()
+        }
 
+	HTMLTableHandler.prototype.showExcelSheetInHtmlTable = function() {
+            var _this = this;
+            // Open file selected in Responsive File Manager.
+            // If successful call buildExcelHtmlTable().
+            this.excelReader.tryToOpenFileUntilSuccesful(function() {
+                buildExcelHtmlTable.call(_this);
+            });
+        }
+
+        HTMLTableHandler.prototype.loadCurrentRecord = function() {
+
+            this.currentFormWindow = document.getElementById("myframe").contentWindow;
+
+            if (this.loadCurrentRecordFunction!==null)
+                this.loadCurrentRecordFunction.call(this);
+        }
+
+	HTMLTableHandler.prototype.onClickRecord = function(element, processingMultipleRecords) {
+
+                this.eventHandler = new EventHandler();
+
+                // Initialize FormFiller with reference to Marktplaats.nl's jQuery object.
+                // Markplaats.nl is inside an iFrame that is showing Marktplaats.nl through localhost proxy.
+                this.formFiller = new FormFiller(this.eventHandler);
+		this.eventHandler.clearAllIntervals();
+
+		var link = element.parentNode;
+		var linkSplit = link.id.split("-");
+		var recordToOpen = parseInt(linkSplit[1]);
+
+                if (typeof processingMultipleRecords!=='undefined' && processingMultipleRecords===true)
+                {
+                    this.loadCurrentRecordFunction = loadCurrentRecordMultiMode;
+                }
+                else {
+                    clearFormFillerErrors();
+                    this.loadCurrentRecordFunction = loadCurrentRecordSingleMode;
+                }
+
+                // Clear last status message
+                this.formFiller.setStatusMessage("");
+
+		window.scrollTo(0,0);
+
+                removeClassActiveFromColumns();
+		$(link).find("td.highlight").addClass("active");
+
+		try {
+                    this.record = this.excelReader.readRecord(recordToOpen);
+		}
+		catch (error) {
+                    if (error.number===-2146827864 /*Object required*/) {
+                        this.excelReader.openExcelSheet();
+                        this.record = this.excelReader.readRecord(recordToOpen);
+                    }
+                    else throw error;
+		}
+
+                var backLink = $("#myframe").contents().find("a.backlink > span");
+
+                if (backLink.length > 0) {
+                    // Onload iframe calls loadCurrentRecord()
+                    backLink.click();
+                }
+                else {
+                    this.loadCurrentRecord();
+                }
+	}
 
 	function refreshPlaceAdsButton() {
 
-		if (nrOfCheckedRecords>0) {
+		if (this.nrOfCheckedRecords>0) {
 			$("div#placeAllCheckedAds").show();
                         $("div#notLoggedInWarning").hide();
-			$("input#submitAllCheckedButton").val("Plaats "+nrOfCheckedRecords+" advertentie(s)");
+			$("input#submitAllCheckedButton").val("Plaats "+this.nrOfCheckedRecords+" advertentie(s)");
 
                         if (!userIsLoggedIn()) {
                             $("input#submitAllCheckedButton").prop("disabled", true);
@@ -57,70 +133,144 @@ var HTMLTableHandler = (function() {
 		}
 	}
 
-
         function removeClassActiveFromColumns() {
 		$("table.ExcelTable2007 > tbody > tr td.highlight").removeClass("active");
         }
 
-	function onClickRecord(link) {
+        function clearFormFillerErrors() {
+                $("div#errorBox").hide();
+                $("ul.errorList").remove();
+        }
 
-                // Clear last message
-                FormFiller.setStatusMessage("");
+        function printFormFillerErrors(errors) {
 
-		EventHandler.clearAllIntervals();
+                if (errors.length!==0) {
 
-		link = link.parentNode;
-		var linkSplit = link.id.split("-");
-		var recordToOpen = parseInt(linkSplit[1]);
+                    this.formFiller.setErrorMessage("Formulier invullen mislukt");
 
-		window.scrollTo(0,0);
+                    var errorList = ("<ul class='errorList'><li>Record "+(parseInt(this.record.nr)+1)+"<ul>");
 
-                removeClassActiveFromColumns();
-		$(link).find("td.highlight").addClass("active");
+                    $.each(errors, function(ix, error) {
+                        errorList += "<li>";
+                        errorList += error;
+                        errorList += "</li>";
+                    });
 
-		try {
-                    record = Excel.readRecord(recordToOpen);
-		}
-		catch (error) {
-                    if (error.number===-2146827864 /*Object required*/) {
-                        Excel.openExcelSheet();
-                        record = Excel.readRecord(recordToOpen);
-                    }
-                    else throw error;
-		}
+                    errorList += "</ul></li></ul>";
 
-                var backLink = $("#myframe").contents().find("a.backlink > span");
-
-                if (backLink.length > 0) {
-                    // Onload iframe calls loadCurrentRecord()
-                    backLink.click();
-                }
-                else {
-                    loadCurrentRecord();
-                }
-	}
-
-        function loadCurrentRecord() {
-
-                clearInterval(checkIfRecordReady);
-
-                if (record !== null) {
-
-                    FormFiller.fillForm(record);
-
-                    // Check if EventHandler.waitForConditionAndExecute() is active
-                    checkIfRecordReady = setInterval(function() {
-                        if (EventHandler.isActive()===false) {
-                            FormFiller.setStatusMessage("Excel record succesvol ingevuld");
-                            clearInterval(checkIfRecordReady);
-                        }
-                    }, checkIfRecordReadyInterval);
+                    $("div#errorBox").append(errorList);
+                    $("div#errorBox").show();
                 }
         }
 
+        function loadCurrentRecordMultiMode() {
+
+            var _this = this;
+            var callback = null;
+
+            clearIntervals.call(_this);
+
+            if (inScreen2.call(this)===true) {
+                callback = function() {
+                    multiModeCallback.call(_this);
+                }
+            }
+
+            if (this.record !== null) {
+                this.formFiller.fillForm(this.currentFormWindow, this.record, callback);
+            }
+        }
+
+        function multiModeCallback() {
+
+            var _recordsQueueIntervalCounter = 0;
+            var _this = this;
+
+            this.checkIfRecordFromQueueIsDone = setInterval(function() {
+
+                if (++_recordsQueueIntervalCounter >= _this.maxRecordsQueueIntervalExecutions) {
+                    clearIntervals.call(_this);
+                    _this.eventHandler.clearAllIntervals();
+                    _this.formFiller.setColorStatusMessageRed();
+                    addClassErrorToRow(_this.recordsQueue[0]+1);
+                    processNextInQueue.call(_this);
+                }
+                else {
+
+                    if (!_this.eventHandler.isActive() && inScreen2.call(_this) && canValidateForm.call(_this) ) {
+
+                        clearIntervals.call(_this);
+
+                        if (!validateForm.call(_this)) {
+                            _this.formFiller.setErrorMessage("Formulier validatie mislukt");
+                            addClassErrorToRow(_this.recordsQueue[0]+1);
+                        }
+                        else {
+
+                            var errors = _this.formFiller.getErrors();
+                            if (errors.length!=0) {
+                                printFormFillerErrors.call(_this, errors);
+                                addClassErrorToRow(_this.recordsQueue[0]+1);
+                            }
+                            else {
+                                _this.formFiller.setStatusMessage("Excel record succesvol ingevuld");
+
+                                // Deselect record checkbox
+                                $("table.ExcelTable2007 > tbody > tr").eq(_this.recordsQueue[0]+1).find("input:checkbox").click();
+
+                                // Click on place advertisement button
+                                var pushButton = _this.currentFormWindow.$("#syi-place-ad-button")[0];
+                                clickOnElement(pushButton);
+                            }
+                        }
+                        processNextInQueue.call(_this);
+                    }
+                }
+            }, this.checkIfRecordFromQueueIsDoneInterval);
+        }
+
+        function loadCurrentRecordSingleMode() {
+
+                var _this = this;
+                var callback = null;
+
+                clearIntervals.call(this);
+
+                if (inScreen2.call(this)===true) {
+                    callback = function() {
+                        singleModeCallback.call(_this);
+                    }
+                }
+
+                if (this.record !== null) {
+                    this.formFiller.fillForm(this.currentFormWindow, this.record, callback);
+                }
+        }
+
+        function singleModeCallback() {
+
+            var _this = this;
+            // Check if eventHandler.waitForConditionAndExecute() is active
+            this.checkIfRecordReady = setInterval(function() {
+
+                if (_this.formFiller.isActive()===false) {
+                    clearInterval(_this.checkIfRecordReady);
+
+                    var errors = _this.formFiller.getErrors();
+                    if (errors.length!=0) {
+                        printFormFillerErrors.call(_this, errors);
+                    }
+                    else {
+                        _this.formFiller.setStatusMessage("Excel record succesvol ingevuld");
+                    }
+                }
+
+            }, this.checkIfRecordReadyInterval);
+        }
+
+
         function inScreen2() {
-            var myframeWindow = document.getElementById("myframe").contentWindow;
-            if (myframeWindow.document.URL.match("https://localhost/syi/.*/.*/plaatsAdvertentie")!==null)
+            if (this.currentFormWindow.document.URL.match("https://localhost/syi/.*/.*/plaatsAdvertentie")!==null)
             {
                 return true;
             }
@@ -129,8 +279,7 @@ var HTMLTableHandler = (function() {
 
         function canValidateForm() {
             try {
-                var myframeWindow = document.getElementById("myframe").contentWindow;
-                var childViews = myframeWindow.AURORA.Pages.syi.childViews;
+                var childViews = this.currentFormWindow.AURORA.Pages.syi.childViews;
 
                 if (typeof childViews.descriptionEditor._initValidation === 'undefined' || 
                     typeof childViews.form.beforeSubmit === 'undefined' ||
@@ -147,9 +296,8 @@ var HTMLTableHandler = (function() {
         }
 
         function validateForm() {
-                var myframeWindow = document.getElementById("myframe").contentWindow;
-                myframeWindow.AURORA.Pages.syi.childViews.form.beforeSubmit();
-                if (!myframeWindow.AURORA.Pages.syi.childViews.form.noErrorsFound()) {
+                this.currentFormWindow.AURORA.Pages.syi.childViews.form.beforeSubmit();
+                if (!this.currentFormWindow.AURORA.Pages.syi.childViews.form.noErrorsFound()) {
                     return false;
                 }
                 return true;
@@ -160,13 +308,14 @@ var HTMLTableHandler = (function() {
                 return loggedInCookie==="true";
         }
 
-	function showExcelSheetInHtmlTable() {
+	function buildExcelHtmlTable() {
 
+                var _this = this;
 		$(window).on('beforeunload', function(){ 
-			Excel.closeExcelSheet();
+			_this.excelReader.closeExcelSheet();
 		});
 
-		var record = Excel.readRecord(1);
+		var record = this.excelReader.readRecord(1);
 		$("div#nrofrecords").append("Aantal records: "+(parseInt(record.nrofrows)-1)+"<b>");
 
 		var i = 1;
@@ -175,7 +324,7 @@ var HTMLTableHandler = (function() {
 			var category = "";
 			var title = "";
 
-			if (i>1) record = Excel.readRecord(i);
+			if (i>1) record = this.excelReader.readRecord(i);
 
 			if (typeof record.category2 !== 'undefined')
 				category = record.category2;
@@ -186,9 +335,9 @@ var HTMLTableHandler = (function() {
 
 			var str = "<tr id='rec-"+i+"'>" +
 				  "<td><input id='checkbox-"+i+"' class='selectable' type='checkbox'></td>"+
-				  "<td class='heading hover'   onclick='HTMLTableHandler.onClickRecord(this);return false;'>"+(i+1)+"</td>" +
-				  "<td class='highlight hover' onclick='HTMLTableHandler.onClickRecord(this);return false;'>"+title+"</td>" +
-				  "<td class='highlight hover' onclick='HTMLTableHandler.onClickRecord(this);return false;'>"+category+"</td>" +
+				  "<td class='heading hover'   onclick='tableHandler.onClickRecord(this);return false;'>"+(i+1)+"</td>" +
+				  "<td class='highlight hover' onclick='tableHandler.onClickRecord(this);return false;'>"+title+"</td>" +
+				  "<td class='highlight hover' onclick='tableHandler.onClickRecord(this);return false;'>"+category+"</td>" +
 				  "</tr>";
 
 			$("table.ExcelTable2007 > tbody").append(str);
@@ -201,17 +350,18 @@ var HTMLTableHandler = (function() {
 		$("input#submitAllCheckedButton").click(function() {
                         // If user clicked before refreshPlaceAdsButtonInterval() fired
                         if (!userIsLoggedIn()) {
-                            refreshPlaceAdsButton();
+                            refreshPlaceAdsButton.call(_this);
                             return;
                         }
-			recordsQueue=[];
+                        clearFormFillerErrors();
+			_this.recordsQueue=[];
 			$("input[type='checkbox'].selectable:checked").each(function(ix, element) {
                                 var id = $(element).parent().parent().prop("id");
 				/* Strip 'rec-' off */
 				var rowToClickOn = parseInt(id.substring(4,id.length));
-				recordsQueue.push(rowToClickOn);
+				_this.recordsQueue.push(rowToClickOn);
 			});
-                        processRecordsQueue(recordsQueue);
+                        processRecordsQueue.call(_this, _this.recordsQueue);
 
 		});
 
@@ -221,19 +371,19 @@ var HTMLTableHandler = (function() {
 				if (!val) ++count;
 				return !val;
 			});
-			nrOfCheckedRecords = count;
-			refreshPlaceAdsButton();
+			_this.nrOfCheckedRecords = count;
+                        refreshPlaceAdsButton.call(_this);
 		});
 
 		$("input[type='checkbox'].selectable").change(function() {
-			if ($(this).is(":checked")) ++nrOfCheckedRecords;
-			else --nrOfCheckedRecords;
-			refreshPlaceAdsButton();
+			if ($(this).is(":checked")) ++_this.nrOfCheckedRecords;
+			else --_this.nrOfCheckedRecords;
+                        refreshPlaceAdsButton.call(_this);
 		});
 
                 // Check if logged in every 2 seconds and enable/disable place ads button.
-                refreshPlaceAdsButtonInterval = setInterval(function() {
-                    HTMLTableHandler.refreshPlaceAdsButton();
+                this.refreshPlaceAdsButtonInterval = setInterval(function() {
+                    refreshPlaceAdsButton.call(_this);
                 }, 2000);
 	}
 
@@ -244,14 +394,16 @@ var HTMLTableHandler = (function() {
     	}
 
         function processNextInQueue() {
-                recordsQueue.shift();
-                if (recordsQueue.length>0) 
-                    processRecordsQueue(recordsQueue);
+                this.recordsQueue.shift();
+
+                if (this.recordsQueue.length>0) {
+                    processRecordsQueue.call(this);
+                }
         }
 
         function clearIntervals() {
-                clearInterval(checkIfRecordFromQueueIsDone);
-                clearInterval(checkIfRecordReady); // loadCurrentRecord()
+                clearInterval(this.checkIfRecordFromQueueIsDone);
+                clearInterval(this.checkIfRecordReady); // started in loadCurrentRecord()
         }
 
         function addClassErrorToRow(rowNr) {
@@ -259,54 +411,12 @@ var HTMLTableHandler = (function() {
             $("table.ExcelTable2007 > tbody > tr").eq(rowNr).addClass('error');
         }
 
-	function processRecordsQueue(recordsQueue) {
-
-		var condition = null;
-		var action = null;
-		var _recordsQueueIntervalCounter = 0;
-
-                // Call onClickRecord()
-                $("table.ExcelTable2007 > tbody > tr").eq(recordsQueue[0]+1).find("td:eq(2)").click(); 
-
-		checkIfRecordFromQueueIsDone = setInterval(function() {
-
-                    if (++_recordsQueueIntervalCounter >= maxRecordsQueueIntervalCounter) {
-                        clearIntervals();
-                        EventHandler.clearAllIntervals();
-                        FormFiller.setColorStatusMessageRed();
-                        addClassErrorToRow(recordsQueue[0]+1);
-                        processNextInQueue();
-                    }
-                    else {
-                        if (!EventHandler.isActive() && canValidateForm() && inScreen2()) {
-
-                            clearIntervals();
-
-                            if (!validateForm()) {
-                                FormFiller.setErrorMessage("Formulier validatie mislukt");
-                                addClassErrorToRow(recordsQueue[0]+1);
-                            }
-                            else {
-                                FormFiller.setStatusMessage("Excel record succesvol ingevuld");
-                                // Deselect record checkbox
-                                $("table.ExcelTable2007 > tbody > tr").eq(recordsQueue[0]+1).find("input:checkbox").click();
-
-                                // Click on place advertisement button
-                                var pushButton = $("#myframe").contents().find("#syi-place-ad-button")[0];
-                                clickOnElement(pushButton);
-                            }
-                            processNextInQueue();
-                        }
-                    }
-		}, checkIfRecordFromQueueIsDoneInterval);
+	function processRecordsQueue() {
+                // Call onClickRecord() with table row containing current record from queue
+                var element = $("table.ExcelTable2007 > tbody > tr").eq(this.recordsQueue[0]+1).find("td:eq(2)")[0];
+                this.onClickRecord.call(this, element, true);
 	}
 
-        return {
-            "validateForm": validateForm,
-            "loadCurrentRecord": loadCurrentRecord,
-            "onClickRecord": onClickRecord,
-	    "processRecordsQueue": processRecordsQueue,
-            "showExcelSheetInHtmlTable": showExcelSheetInHtmlTable,
-            "refreshPlaceAdsButton": refreshPlaceAdsButton
-        }
+        return HTMLTableHandler;
+
 })();

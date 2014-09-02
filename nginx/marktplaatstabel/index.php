@@ -28,16 +28,24 @@
 	        <meta content="Marktplaatstabel - Marktplaats bedienen met excel!">
 		<script type='text/javascript' src='https://localhost/marktplaatstabel/js/jquery-2.1.1.js'></script> 
 		<script type='text/javascript' src='https://localhost/marktplaatstabel/js/CookieHandler.js'></script>
+		<script type='text/javascript' src='https://localhost/marktplaatstabel/js/ExcelReader.js'></script>
 		<script type='text/javascript' src='https://localhost/marktplaatstabel/js/HTMLTableHandler.js'></script>
-		<script type='text/javascript' src='https://localhost/marktplaatstabel/js/Excel.js'></script>
 		<script type='text/javascript' src='https://localhost/marktplaatstabel/js/EventHandler.js'></script>
 		<script type='text/javascript' src='https://localhost/marktplaatstabel/js/FormFiller.js'></script>
 		<script type='text/javascript' src='https://localhost/marktplaatstabel/js/excel-2007-hover-css.js'></script>
 		<script>
+                    // Global used by inline (better IE performance) onclick's in HTML table.ExcelTable2007.
+                    // See also: HTMLTableHandler.buildExcelHtmlTable().
+                    var tableHandler = null;
+
                     $(window).ready(function() {
-                        Excel.init();
+
+                        var excelReader = new ExcelReader($("#excelFile").text());
+                        tableHandler = new HTMLTableHandler(excelReader);
+                        tableHandler.showExcelSheetInHtmlTable();
+
                         $("#myframe").on("load", function() {
-                            HTMLTableHandler.loadCurrentRecord();
+                            tableHandler.loadCurrentRecord();
                         });
                     });
                 </script>
@@ -52,7 +60,6 @@
 			<div class="headerRight">
 				<img id="logo" src="/mpexcel-32x32.ico">
 				<div class="title">Marktplaatstabel</div>
-				<div id="activity"></div>
 				<div class="topMenu"><a href="http://localhost/marktplaatstabel">Terug naar bestandsoverzicht</a></div>
 			</div>
 			<div id="headerBottom"></div>
@@ -86,6 +93,9 @@
 					</table>
 
 				</div>
+                                <div id="errorBox">
+                                    <h3>Foutrapport</h3>
+                                </div>
 			</div>
 		</div>
 

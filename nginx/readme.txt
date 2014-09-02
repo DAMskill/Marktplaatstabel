@@ -1,7 +1,7 @@
 Marktplaatstabel
 ================
 
-Marktplaats-tabel maakt Marktplaats nog eenvoudiger. Met de webapplicatie
+Marktplaatstabel maakt Marktplaats nog eenvoudiger. Met de webapplicatie
 kunt u binnen enkele minuten honderden advertenties plaatsen met een druk
 op de knop.  
 

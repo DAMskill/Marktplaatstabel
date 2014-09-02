@@ -2,24 +2,26 @@
 
 [Setup]
 AppName=Marktplaatstabel
-AppVersion=1.3.4
+AppVersion=1.3.5
 DefaultDirName={pf}\Marktplaatstabel
 DefaultGroupName=Marktplaatstabel
 UninstallDisplayIcon={app}\images\marktplaatstabel.ico
 ;OutputDir=userdocs:Inno Setup Examples Output
-SetupIconFile="images\marktplaatstabel.ico"
-WizardImageFile="images\WizModernImage.bmp"
+SetupIconFile="..\images\marktplaatstabel.ico"
+WizardImageFile="..\images\WizModernImage.bmp"
+PrivilegesRequired=admin
 
 [Languages]
 Name: "nl"; MessagesFile: "compiler:Languages\Dutch.isl"
 
 [Files]
-DestDir: {app}; Source: *; Excludes: "*.iss,\images\WizModernImage.bmp,\Output\*"; Flags: recursesubdirs createallsubdirs 
-Source: CertMgr.exe; DestDir: {app}; Flags: deleteafterinstall
-Source: server.crt; DestDir: {app}; Flags: deleteafterinstall
-Source: Excel files\Voorbeeldtabel.xlsm; DestDir: {commondocs}\Marktplaats-tabel;
+DestDir: {app}; Source: ..\*; Excludes: "*.iss,\images\WizModernImage.bmp,\Output\*"; Flags: recursesubdirs createallsubdirs 
+Source: "..\Excel files\Voorbeeldtabel.xlsm"; DestDir: {commondocs}\Marktplaats-tabel;
 ;Source: "Readme.txt"; DestDir: "{app}"; Flags: isreadme
-Source: "Visual C++ Redistributable for Visual Studio 2012 Update 4\vcredist_x86.exe"; DestDir: {tmp}; Flags: deleteafterinstall
+Source: "..\Visual C++ Redistributable for Visual Studio 2012 Update 4\vcredist_x86.exe"; DestDir: {tmp}; Flags: deleteafterinstall
+
+[Registry]
+Root: HKLM; Subkey: "SYSTEM\CurrentControlSet\Control\Session Manager\Environment"; ValueType: expandsz; ValueName: "Path"; ValueData: "{olddata};C:\Windows\SysWow64"; Check: NeedsAddPath('C:\Windows\SysWow64')
 
 [Dirs]
 Name: "{commondocs}\Marktplaats-tabel"
@@ -32,9 +34,18 @@ Name: "{commondesktop}\Marktplaatstabel Starten"; Filename: "{app}\start.bat"; W
 Name: "{commondesktop}\Marktplaatstabel Stoppen"; Filename: "{app}\stop.bat"; WorkingDir: "{app}"; IconFilename: "{app}\images\marktplaatstabel.ico"
 
 [Run]
-Filename: {app}\CertMgr.exe; Parameters: "-add -all -c server.crt -s -r localmachine root"; Flags: waituntilterminated runhidden;
+Filename: {app}\misc\CertMgr.exe; Parameters: "-add -all -c server.crt -s -r localmachine root"; Flags: waituntilterminated runhidden;
 Filename: {app}\start.bat; Description: {cm:LaunchProgram,Marktplaatstabel}; Flags: postinstall;
 Filename: "{tmp}\vcredist_x86.exe"; Check: VCRedistNeedsInstall86; Parameters: "/passive /norestart"; StatusMsg: Starting installation of {code:GetVCRedistText}...
+Filename: {app}\misc\nssm.exe; Parameters: "install MARKTPLAATSTABEL-PHP-CGI ""{app}\php\php-cgi.exe""  """"-b 127.0.0.1:9123 -c \""{app}\php\php.ini\"" """" "; Flags: runhidden
+Filename: {app}\misc\nssm.exe; Parameters: "install MARKTPLAATSTABEL-NGINX ""{app}\nginx.exe"" "; Flags: runhidden
+
+[UninstallRun]
+Filename: {app}\misc\nssm.exe; Parameters: "stop MARKTPLAATSTABEL-PHP-CGI"; Flags: runhidden
+Filename: {app}\misc\nssm.exe; Parameters: "stop MARKTPLAATSTABEL-NGINX"; Flags: runhidden
+Filename: {app}\misc\nssm.exe; Parameters: "remove MARKTPLAATSTABEL-PHP-CGI confirm"; Flags: runhidden
+Filename: {app}\misc\nssm.exe; Parameters: "remove MARKTPLAATSTABEL-NGINX confirm"; Flags: runhidden
+Filename: {app}\misc\CertMgr.exe; Parameters: "-del -all -c server.crt -s -r localmachine root"; Flags: runhidden
 
 [CustomMessages]
 ; See example: http://fb2epub.googlecode.com/svn/trunk/Fb2ePubSetup/scripts/products/vcredist2012.iss
@@ -83,3 +94,19 @@ Function GetVCRedistText(param: String): String;
 Begin
   Result := CustomMessage('vcredist2012_title')
 End; 
+
+function NeedsAddPath(Param: string): boolean;
+var
+  OrigPath: string;
+begin
+  if not RegQueryStringValue(HKEY_LOCAL_MACHINE,
+    'SYSTEM\CurrentControlSet\Control\Session Manager\Environment',
+    'Path', OrigPath)
+  then begin
+    Result := True;
+    exit;
+  end;
+  // look for the path with leading and trailing semicolon
+  // Pos() returns 0 if not found
+  Result := Pos(';' + Param + ';', ';' + OrigPath + ';') = 0;
+end;
