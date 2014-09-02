@@ -21,78 +21,115 @@
  * EventHandler
  * ============
  * Wait until event (condition) occurs then execute handler (action).
- *
  */
+
 var EventHandler = (function() {
 
     "use strict";
 
-    var domChangeTimers = null;
-    var domChangeDelay = 500;
-
-    function init(uniqueID) {
-
-        if (domChangeTimers === null)
-            domChangeTimers = {};
-
-        if (uniqueID in domChangeTimers)
-            clearInterval(domChangeTimers[uniqueID]);
-
-        return uniqueID;
+    function EventHandler() {
+        this.domChangeTimer = null;
+        this.domChangeDelay = 500;
+        this.domChangeErrors = [];
     }
 
-    /* To prevent isActive() from returning true before completion of filling out form */
-    function reserveSlot(uniqueIDString) {
-        var uniqueID = init(uniqueIDString);
-        domChangeTimers[uniqueID] = null;
+    /* reserveSlot is used to prevent isActive() from returning true before
+     * completion of filling out form.
+     */
+    EventHandler.prototype.reserveSlot = function(uniqueIDString) {
+        clearTimer.call(this, uniqueIDString);
+        this.domChangeTimer[uniqueIDString] = null;
     }
 
-    function waitForConditionAndExecute(uniqueIDString, condition, action, delayInMilliseconds, callback) {
+    EventHandler.prototype.cancelSlot = function(uniqueIDString) {
+        if (uniqueIDString in this.domChangeTimer)
+            delete this.domChangeTimer[uniqueIDString];
+    }
 
-        var uniqueID = init(uniqueIDString);
+    EventHandler.prototype.waitForConditionAndExecute = 
+        function(uniqueIDString, condition, action, delayInMilliseconds, callback, maxRetries) 
+    {
+        var uniqueID = clearTimer.call(this, uniqueIDString);
 
-        domChangeTimers[uniqueID] = setInterval(function() {
-            try {
+        this.domChangeTimer[uniqueIDString] = {};
+        this.domChangeTimer[uniqueIDString].maxRetries = maxRetries;
 
+        var _this = this;
+        this.domChangeTimer[uniqueIDString].interval = 
+            setInterval(function() { intervalFunction.call(_this, uniqueIDString, condition, action, callback) }, 
+                            delayInMilliseconds || this.domChangeDelay);
+    }
+
+    function intervalFunction(uniqueIDString, condition, action, callback) {
+
+        try {
+            var maxRetries = this.domChangeTimer[uniqueIDString].maxRetries;
+
+            if (typeof maxRetries === 'undefined' || this.domChangeTimer[uniqueIDString].maxRetries-- > 0)
+            {
                 if (typeof callback==="function")
                     callback();
 
                 if (condition()) {
                     if (action() !== false) {
-                        clearInterval(domChangeTimers[uniqueID]);
-                        delete domChangeTimers[uniqueID];
+                        clearInterval(this.domChangeTimer[uniqueIDString].interval);
+                        delete this.domChangeTimer[uniqueIDString];
                     }
                 }
-            } catch (error) {
-                // Clicking records too fast generating too many timers
-                // will result in IE Permission denied errors.
-                location.reload(true);
             }
-        }, delayInMilliseconds || domChangeDelay);
+            else {
+                clearInterval(this.domChangeTimer[uniqueIDString].interval);
+                this.domChangeErrors.push(capitalizeFirstLetter(uniqueIDString) + " of waarde niet gevonden.");
+                delete this.domChangeTimer[uniqueIDString];
+            }
+
+        } catch (error) {
+            // Clicking records too fast generating too many timers
+            // will result in IE Permission denied errors.
+            location.reload(true);
+        }
     }
 
-    function clearAllIntervals() {
-        if (domChangeTimers===null) return;
-        $.each(Object.keys(domChangeTimers), function(ix,val) {
-                clearInterval(domChangeTimers[val]);
+    EventHandler.prototype.clearAllIntervals = function() {
+
+        if (this.domChangeTimer===null) return;
+
+        $.each(this.domChangeTimer, function(timer) {
+            if (typeof this.domChangeTimer[timer]==='Object' && 'interval' in this.domChangeTimer[timer])
+                clearInterval(this.domChangeTimer[timer].interval);
         });
-        domChangeTimers = {};
+
+        this.domChangeTimer = {};
     }
 
-    function isActive() {
-        return domChangeTimers !== null && Object.keys(domChangeTimers).length > 0;
+    EventHandler.prototype.isActive = function() {
+        return this.domChangeTimer !== null && Object.keys(this.domChangeTimer).length > 0;
     }
 
-    function getDomChangeTimers() {
-        return domChangeTimers;
+    EventHandler.prototype.getDomChangeTimer = function() {
+        return this.domChangeTimer;
     }
 
-    return {
-        "waitForConditionAndExecute": waitForConditionAndExecute,
-        "isActive": isActive,
-        "clearAllIntervals": clearAllIntervals,
-        "reserveSlot": reserveSlot,
-        "getDomChangeTimers": getDomChangeTimers
+    EventHandler.prototype.getErrors = function() {
+        return this.domChangeErrors;
     }
+
+    function clearTimer(uniqueIDString) {
+
+        if (this.domChangeTimer === null)
+            this.domChangeTimer = {};
+
+        if (uniqueIDString in this.domChangeTimer) {
+            if (this.domChangeTimer[uniqueIDString]!==null)
+                clearInterval(this.domChangeTimer[uniqueIDString].interval);
+        }
+    }
+
+    function capitalizeFirstLetter(string)
+    {
+        return string.charAt(0).toUpperCase() + string.slice(1);
+    }
+
+    return EventHandler;
 
 })();

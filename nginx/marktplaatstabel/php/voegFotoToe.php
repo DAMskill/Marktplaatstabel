@@ -73,54 +73,60 @@ class foto {
 		$guid     = $this->guid();
 
 		$filename = basename($this->fullPathFilename);
-		$handle   = fopen($this->fullPathFilename, "r");
+		$handle   = @fopen($this->fullPathFilename, "r");
 
-		$data     = '------pluploadboundary'.$guid."\r\n";
-		$data    .= 'Content-Disposition: form-data; name="name"'."\r\n";
-		$data    .= "\r\n";
-		$data    .= $filename."\r\n";
-		$data    .= '------pluploadboundary'.$guid."\r\n";
-		$data    .= 'Content-Disposition: form-data; name="imageData"; filename="'.$filename.'"'."\r\n";
-		$data    .= 'Content-Type: image/jpeg'."\r\n\r\n";
-		$data    .= fread($handle, filesize($this->fullPathFilename));
-		$data    .= "\r\n".'------pluploadboundary'.$guid."--\r\n";
+                if ($handle===false) {
+                    return '{"error" : "Bestand '.addslashes($this->fullPathFilename).' niet gevonden."}';
+                }
+                else {
 
-		$params = array('http' => array(
-			  'method' => 'POST',
-			  'protocol_version' => 1.1,
-			  //'proxy' => "tcp://localhost:8888",
-			  'timeout' => 5,
-			  'content' => $data
-			  ));
+                    $data     = '------pluploadboundary'.$guid."\r\n";
+                    $data    .= 'Content-Disposition: form-data; name="name"'."\r\n";
+                    $data    .= "\r\n";
+                    $data    .= $filename."\r\n";
+                    $data    .= '------pluploadboundary'.$guid."\r\n";
+                    $data    .= 'Content-Disposition: form-data; name="imageData"; filename="'.$filename.'"'."\r\n";
+                    $data    .= 'Content-Type: image/jpeg'."\r\n\r\n";
+                    $data    .= fread($handle, filesize($this->fullPathFilename));
+                    $data    .= "\r\n".'------pluploadboundary'.$guid."--\r\n";
 
-		$params['http']['header'] = $this->getRequestHeaders($guid, $this->mpSessionID);
-		$ctx = stream_context_create($params);
+                    $params = array('http' => array(
+                              'method' => 'POST',
+                              'protocol_version' => 1.1,
+                              //'proxy' => "tcp://localhost:8888",
+                              'timeout' => 5,
+                              'content' => $data
+                              ));
 
-		$fp = fopen($url, 'rb', false, $ctx);
-		if (!$fp) {
-		  throw new Exception("Problem with $url, $php_errormsg");
-		}
+                    $params['http']['header'] = $this->getRequestHeaders($guid, $this->mpSessionID);
+                    $ctx = stream_context_create($params);
 
-		$response = stream_get_contents($fp);
-		if ($response === false) {
-		  throw new Exception("Problem reading data from $url, $php_errormsg");
-		}
+                    $fp = fopen($url, 'rb', false, $ctx);
+                    if (!$fp) {
+                      throw new Exception("Problem with $url, $php_errormsg");
+                    }
 
-		$meta = stream_get_meta_data($fp);
-		if ($meta === false) {
-		  throw new Exception("Problem reading meta data from $url, $php_errormsg");
-		}
+                    $response = stream_get_contents($fp);
+                    if ($response === false) {
+                      throw new Exception("Problem reading data from $url, $php_errormsg");
+                    }
 
-		/* Content-Encoding: gzip */
-		if (!empty(preg_grep("/content-encoding.*gzip/i", $meta["wrapper_data"]))) {
-			
-		      // Gzip header ID1 and ID2 (rfc1952)
-		      if(ord($response[0]) == 0x1f && ord($response[1]) == 0x8b)
-		      {
-			$response = gzinflate(substr($response,10));
-		      }
-		}
-		return $response;
+                    $meta = stream_get_meta_data($fp);
+                    if ($meta === false) {
+                      throw new Exception("Problem reading meta data from $url, $php_errormsg");
+                    }
+
+                    /* Content-Encoding: gzip */
+                    if (!empty(preg_grep("/content-encoding.*gzip/i", $meta["wrapper_data"]))) {
+                            
+                          // Gzip header ID1 and ID2 (rfc1952)
+                          if(ord($response[0]) == 0x1f && ord($response[1]) == 0x8b)
+                          {
+                            $response = gzinflate(substr($response,10));
+                          }
+                    }
+                    return $response;
+                }
 	}
 }
 
@@ -142,8 +148,17 @@ $result = $foto->voegFotoToe();
 /*
 $fp = fopen('voegfototoelog.txt', 'a');
 fwrite($fp, "\n");
+fwrite($fp, print_r($_POST, TRUE));
+fwrite($fp, "\n\n");
+fclose($fp);
+*/
+
+/*
+$fp = fopen('voegfototoelog.txt', 'a');
+fwrite($fp, "\n");
 fwrite($fp, "STOP:");
 fwrite($fp, date('d-m-Y H:i:s'));
+fwrite($fp, print_r($fullPathFilename, TRUE));
 fwrite($fp, print_r($result, TRUE));
 fwrite($fp, "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^");
 fwrite($fp, "\n\n");
@@ -151,17 +166,14 @@ fclose($fp);
 */
 
 /* result example:
-
-stdClass Object
-(
-    [requestToken] => 1406066157454.8842279137f15751519c196110bcbefa
-    [valid] => 1
-    [messageKey] => 
-    [id] => 2357935873
-    [imageUrl] => //i.marktplaats.com/00/s/MzE3WDM4MA==/z/K2IAAOSwiuZTzt3w/$_82.JPG
-    [largeImageUrl] => //i.marktplaats.com/00/s/MzE3WDM4MA==/z/K2IAAOSwiuZTzt3w/$_84.JPG
-    [extraLargeImageUrl] => //i.marktplaats.com/00/s/MzE3WDM4MA==/z/K2IAAOSwiuZTzt3w/$_85.JPG
-)
+ 
+    {"requestToken": "1409262476370.8158261b06e2899b4002c6e5c52b2ffc",
+     "valid":true,
+     "messageKey":"",
+     "id": "2402532138" ,
+     "imageUrl":"//i.marktplaats.com/00/s/MzQ5WDQ4MA==/z/ncEAAOSwnDZT~6ON/$_82.JPG",
+     "largeImageUrl":"//i.marktplaats.com/00/s/MzQ5WDQ4MA==/z/ncEAAOSwnDZT~6ON/$_84.JPG",
+     "extraLargeImageUrl":"//i.marktplaats.com/00/s/MzQ5WDQ4MA==/z/ncEAAOSwnDZT~6ON/$_85.JPG"}
 */
 
 echo $result;

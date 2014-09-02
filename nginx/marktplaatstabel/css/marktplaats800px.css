@@ -124,5 +124,16 @@ div.attributes.multi-select-attributes {
 }
 
 div.ms-col {
-	margin-bottom:10;x;
+	margin-bottom:10px;
+}
+
+.photo-upload-section.section-content {
+        height: auto;
+}
+
+div.fileNotFound {
+        background-color: white;
+        padding:10px;
+        color: #d01f3c;
+        font-weight: bold;
 }

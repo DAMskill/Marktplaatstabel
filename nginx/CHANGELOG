@@ -1,3 +1,13 @@
+02-sep-2014
+   Version 1.3.5
+        - Added a max. nr of retries parameter to fields handled by
+	  EventHandler.
+	- Added constructor pattern to all revealing modules.
+	- Error report: If an Excel record produces errors during
+	  form filling, the error messages are added to a report
+	  below the HTML Excel table.
+	- PHP-CGI and NGINX are now registered as Windows services during
+	  installation.
 
 26-aug-2014
    Version 1.3.4
