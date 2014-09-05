@@ -24,9 +24,6 @@ bundel van de volgende open-source software:
   http://www.cogniview.com/articles-resources/quick-css-tools-for-making-your-web-tables-look-just-like-excel
 - Javascript code voor de interactie met Marktplaats.nl
 
-The setup file was generated with Inno Setup and converted to MSI with MSI
-Wrapper.
-
 Excel
 -----
 
@@ -73,7 +70,4 @@ http://www.marktplaatstabel.nl
 
 Inno Setup
 http://www.jrsoftware.org/isinfo.php
-
-MSI Wrapper
-http://www.exemsi.com/download
 

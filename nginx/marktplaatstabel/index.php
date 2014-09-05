@@ -93,8 +93,13 @@
 					</table>
 
 				</div>
+                                <a name="statusReport"></a>
+                                <div id="statusReport">
+                                    <h3>Status rapport</h3>
+                                    <div id="result"></div>
+                                </div>
                                 <div id="errorBox">
-                                    <h3>Foutrapport</h3>
+                                    <h4>Foutmeldingen</h3>
                                 </div>
 			</div>
 		</div>

@@ -31,6 +31,11 @@ var HTMLTableHandler = (function() {
 
             // Queue variables
             this.recordsQueue=[];
+            this.totalNrOfAdsPlaced = 0;
+            this.totalNrOfRecordsInQueue = 0;
+            this.totalNrOfRecordsSubmitted = 0;
+            this.totalNrOfRecordsSubmittedFinished = 0;
+
             this.checkIfRecordFromQueueIsDone = null;
             this.checkIfRecordFromQueueIsDoneInterval = 1000;
             // Number of checkIfRecordFromQueueIsDoneInterval executions
@@ -55,6 +60,7 @@ var HTMLTableHandler = (function() {
 
         HTMLTableHandler.prototype.loadCurrentRecord = function() {
 
+            // Access to iframe with Marktplaats.nl
             this.currentFormWindow = document.getElementById("myframe").contentWindow;
 
             if (this.loadCurrentRecordFunction!==null)
@@ -73,6 +79,9 @@ var HTMLTableHandler = (function() {
 		var link = element.parentNode;
 		var linkSplit = link.id.split("-");
 		var recordToOpen = parseInt(linkSplit[1]);
+
+                // Status report is displayed after processing multiple records.
+                $("div#statusReport").hide();
 
                 if (typeof processingMultipleRecords!=='undefined' && processingMultipleRecords===true)
                 {
@@ -163,6 +172,58 @@ var HTMLTableHandler = (function() {
                 }
         }
 
+        function setResult() {
+            if (this.totalNrOfRecordsSubmitted === this.totalNrOfRecordsSubmittedFinished &&
+                    this.recordsQueue.length ===0 ) 
+            {
+                var result = "Aantal verwerkt: " + this.totalNrOfRecordsInQueue + "<br>";
+                result += "Aantal geplaatst: " + this.totalNrOfAdsPlaced + "<br>";
+                result += "Aantal mislukt: " + (this.totalNrOfRecordsInQueue - this.totalNrOfAdsPlaced);
+                $("div#statusReport").show();
+                $("div#result").html(result);
+                document.location.hash="statusReport";
+            }
+        }
+
+        function submitFormWithAjax() {
+
+            var formWindow = document.getElementById("myframe").contentWindow;
+
+            // Get description from tinymce iframe and copy it to textarea#description of the form
+            var description = formWindow.$("iframe#description_ifr").contents().find("body#tinymce").html();
+            formWindow.$("textarea#description").html(description);
+
+            // Gather form URL and serialize all data to post.
+            var form = formWindow.$("#syi-form");
+            var postData = form.serialize();
+            var formURL = form.attr("action");
+
+            ++this.totalNrOfRecordsSubmitted;
+
+            var _this = this;
+            $.ajax(
+            {
+                url : formURL,
+                type: "POST",
+                data : postData,
+                success:function(data, textStatus, jqXHR) 
+                {
+                    ++_this.totalNrOfRecordsSubmittedFinished;
+
+                    // If ad description is found in HTML string
+                    if (data.indexOf(description)) {
+                        ++_this.totalNrOfAdsPlaced;
+                    }
+                    setResult.call(_this);
+                },
+                error: function(jqXHR, textStatus, errorThrown) 
+                {
+                    ++_this.totalNrOfRecordsSubmittedFinished;
+                    setResult.call(_this);
+                }
+            });
+        }
+
         function loadCurrentRecordMultiMode() {
 
             var _this = this;
@@ -202,8 +263,12 @@ var HTMLTableHandler = (function() {
                         clearIntervals.call(_this);
 
                         if (!validateForm.call(_this)) {
-                            _this.formFiller.setErrorMessage("Formulier validatie mislukt");
+                            var errorMessage = "Formulier validatie mislukt";
+                            _this.formFiller.setErrorMessage(errorMessage);
+                            var errors = _this.formFiller.getErrors();
+                            errors.push(errorMessage);
                             addClassErrorToRow(_this.recordsQueue[0]+1);
+                            printFormFillerErrors.call(_this, errors);
                         }
                         else {
 
@@ -218,9 +283,9 @@ var HTMLTableHandler = (function() {
                                 // Deselect record checkbox
                                 $("table.ExcelTable2007 > tbody > tr").eq(_this.recordsQueue[0]+1).find("input:checkbox").click();
 
-                                // Click on place advertisement button
-                                var pushButton = _this.currentFormWindow.$("#syi-place-ad-button")[0];
-                                clickOnElement(pushButton);
+                                // Submit form with ajax to prevent a redirect and
+                                // opening a new window for every advertisement.
+                                submitFormWithAjax.call(_this);
                             }
                         }
                         processNextInQueue.call(_this);
@@ -258,6 +323,7 @@ var HTMLTableHandler = (function() {
 
                     var errors = _this.formFiller.getErrors();
                     if (errors.length!=0) {
+                        addClassErrorToRow(_this.record.nr+1);
                         printFormFillerErrors.call(_this, errors);
                     }
                     else {
@@ -361,8 +427,12 @@ var HTMLTableHandler = (function() {
 				var rowToClickOn = parseInt(id.substring(4,id.length));
 				_this.recordsQueue.push(rowToClickOn);
 			});
+                        _this.totalNrOfAdsPlaced=0;
+                        _this.totalNrOfRecordsSubmitted=0;
+                        _this.totalNrOfRecordsSubmittedFinished=0;
+                        _this.totalNrOfRecordsInQueue=_this.recordsQueue.length;
+                        $("div#statusReport").hide();
                         processRecordsQueue.call(_this, _this.recordsQueue);
-
 		});
 
 		$("#checkAll").click(function(ix, inputElement) {
@@ -399,6 +469,7 @@ var HTMLTableHandler = (function() {
                 if (this.recordsQueue.length>0) {
                     processRecordsQueue.call(this);
                 }
+
         }
 
         function clearIntervals() {

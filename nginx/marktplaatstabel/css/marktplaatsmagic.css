@@ -193,3 +193,7 @@ div#errorBox {
     display:none;
 }
 
+div#statusReport {
+    display:none;
+}
+

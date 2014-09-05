@@ -1,3 +1,10 @@
+05-sep-2014
+   Version 1.5.0
+	- Added status report
+	- Added new Marktplaats.nl pricetype
+	- Placed advertisements are no longer opened in a new window;
+	  instead the number of new ads is shown in the status report
+
 02-sep-2014
    Version 1.4.0
         - Added a max. nr of retries parameter to fields handled by
