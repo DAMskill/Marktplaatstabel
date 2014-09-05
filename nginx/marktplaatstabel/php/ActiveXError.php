@@ -19,7 +19,7 @@
  *******************************************************************************/
 ?>
 <div class="errorMessage">
-Het is Internet Explorer niet toegestaan om bovenstaande Excel sheet te openen. Onderstaande procedure zorgt ervoor dat uw browser Excel kan openen middels een ActiveX besturingselement.
+Het is Internet Explorer niet toegestaan om bovenstaande Excel sheet te openen, of Excel is niet ge&iuml;nstalleerd. Onderstaande procedure zorgt ervoor dat uw browser Excel kan openen middels een ActiveX besturingselement.
 </div>
 
 Volg de volgende procedure om uw browser met ActiveX te laten werken:
@@ -55,9 +55,10 @@ Volg de volgende procedure om uw browser met ActiveX te laten werken:
 	<li>ActiveX controls and plug-ins</li>
 	<li>Initialize and script ActiveX controls not marked as safe for scripting</li>
 	<li>Enable</li>
+	<li>Ok</li>
+	<li>Apply</li>
 	</ul>
 </ul>
-
 
 Voor aanvullende informatie over het gebruik van ActiveX-besturingselementen kunt u de volgende links raadplegen:
 <ul class="links">

@@ -55,6 +55,7 @@ var FormFiller = (function() {
 
         // Set FormFiller.eventHandler. See also instantiation in HTMLTableHandler.onClickRecord().
         this.eventHandler = eventHandler;
+        this.errors = [];
         this.postPictureErrors = [];
 
         this.mutationCriteria = {
@@ -69,7 +70,7 @@ var FormFiller = (function() {
     }
 
     FormFiller.prototype.getErrors = function() {
-        return this.eventHandler.getErrors().concat(this.postPictureErrors);
+        return this.eventHandler.getErrors().concat(this.postPictureErrors).concat(this.errors);
     }
 
     FormFiller.prototype.setStatusMessage = function(text) {
@@ -217,7 +218,40 @@ var FormFiller = (function() {
         },
         "pricetype": {
             "action": function(pricetype) {
-                this.$("div.form-field div label:Contains('" + pricetype + "')").parent().find("input:first").prop('checked', true);
+                if (!this.$("div.form-field div label:Contains('" + pricetype + "')").length>0) {
+                    this.errors.push("Prijstype " + pricetype + " niet gevonden");
+                }
+                else {
+                    this.$("div.form-field div label:Contains('" + pricetype + "')").parent().find("input:first").prop('checked', true);
+                }
+            }
+        },
+        "otherpricetype": {
+            "action": function(item, uniqueIDString, maxRetries) {
+
+                var _this = this;
+                var action = function() {
+                    var label = _this.$("a:Contains('Kies ander prijstype')");
+                    label.click();
+                    var targetUL = label.parent().parent().find("ul.item-frame");
+                    var targetLI = targetUL.find("li").filter(function() {
+                        return $(this).text().toUpperCase() === item.toUpperCase();
+                    });
+                    targetLI.click();
+                    return (label.parent().parent().find("span.label").text().toUpperCase().indexOf(item.toUpperCase()) != -1);
+                }
+                var condition = function() {
+                    return true;
+                };
+                waitForConditionAndExecute.call(this, uniqueIDString, condition, action, maxRetries);
+            },
+            "maxRetries": 10,
+            /* getUniqueSlotID is used to initialize eventHandler.domChangeTimers object
+             * with an empty string id property for each dropdown. These will be removed 
+             * when eventHandler.waitForConditionAndExecute action finishes successfully.
+             */
+            "getUniqueSlotID": function(item) {
+                return "ander prijstype '" + item + "'";
             }
         },
         "paypal": {
@@ -228,12 +262,22 @@ var FormFiller = (function() {
         },
         "checkboxes": {
             "action": function(item) {
-                this.$("label:Contains('" + item + "')").parent().find("input[type='checkbox']").prop('checked', true);
+                if (!this.$("label:Contains('" + item + "')").length>0) {
+                    this.errors.push(item + " niet gevonden");
+                }
+                else {
+                    this.$("label:Contains('" + item + "')").parent().find("input[type='checkbox']").prop('checked', true);
+                }
             }
         },
         "inputfields": {
             "action": function(item) {
-                this.$("label:Contains('" + item[0] + "')").next().val(item[1]);
+                if (!this.$("label:Contains('" + item[0] + "')").length>0) {
+                    this.errors.push(item[0] + " niet gevonden");
+                }
+                else {
+                    this.$("label:Contains('" + item[0] + "')").next().val(item[1]);
+                }
             }
         }
     };
@@ -346,9 +390,11 @@ var FormFiller = (function() {
         var _this = this;
         if ("pictures" in record) {
             $.each(record.pictures, function(ix, picPath) {
+                if ($.trim(picPath)==="") return;
                 _this.eventHandler.reserveSlot(rule.pictures.getUniqueSlotID(ix));
             });
             $.each(record.pictures, function(ix, picPath) {
+                if ($.trim(picPath)==="") return;
                 rule.pictures.action.call(_this, ix, picPath, rule.pictures.getUniqueSlotID(ix), rule.pictures.maxRetries);
             });
         }
@@ -367,7 +413,9 @@ var FormFiller = (function() {
             if (typeof record[name] === 'object') {
 
                 if (typeof rule.getUniqueSlotID=== 'function') {
-                    $.each(record[name], function(ix, item) { _this.eventHandler.reserveSlot(rule.getUniqueSlotID(item)); });
+                    $.each(record[name], function(ix, item) { 
+                        _this.eventHandler.reserveSlot(rule.getUniqueSlotID(item)); 
+                    });
                     $.each(record[name], function(ix, item) { 
                         rule.action.call(_this, item, rule.getUniqueSlotID(item), rule.maxRetries);
                     });
@@ -378,8 +426,8 @@ var FormFiller = (function() {
             }
             else {
                 if (typeof rule.getUniqueSlotID=== 'function') {
-                    _this.eventHandler.reserveSlot(rule.getUniqueSlotID());
-                    rule.action.call(_this, record[name], rule.getUniqueSlotID(), rule.maxRetries);
+                    _this.eventHandler.reserveSlot(rule.getUniqueSlotID(record[name]));
+                    rule.action.call(_this, record[name], rule.getUniqueSlotID(record[name]), rule.maxRetries);
                 }
                 else {
                     rule.action.call(_this, record[name]);

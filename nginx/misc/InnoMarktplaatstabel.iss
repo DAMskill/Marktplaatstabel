@@ -2,7 +2,7 @@
 
 [Setup]
 AppName=Marktplaatstabel
-AppVersion=1.3.5
+AppVersion=1.3.6
 DefaultDirName={pf}\Marktplaatstabel
 DefaultGroupName=Marktplaatstabel
 UninstallDisplayIcon={app}\images\marktplaatstabel.ico
@@ -24,7 +24,10 @@ Source: "..\Visual C++ Redistributable for Visual Studio 2012 Update 4\vcredist_
 Root: HKLM; Subkey: "SYSTEM\CurrentControlSet\Control\Session Manager\Environment"; ValueType: expandsz; ValueName: "Path"; ValueData: "{olddata};C:\Windows\SysWow64"; Check: NeedsAddPath('C:\Windows\SysWow64')
 
 [Dirs]
+; Responsive File Manager file location
 Name: "{commondocs}\Marktplaats-tabel"
+; Responsive File Manager picture thumbnails location
+Name: "{commondocs}\Marktplaats-tabel_thumbs"
 
 [Icons]
 Name: "{group}\Marktplaatstabel Starten"; Filename: "{app}\start.bat"; WorkingDir: "{app}"; IconFilename: "{app}\images\marktplaatstabel.ico"

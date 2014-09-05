@@ -33,6 +33,7 @@ var ExcelReader = (function() {
                    'Advertentie',
                    'Vraagprijs',
                    'Prijssoort',
+                   'Kies ander prijstype',
                    'Paypal',
                    'Overige invoervelden',
                    'Voeg foto toe'
@@ -139,6 +140,7 @@ var ExcelReader = (function() {
 			this.columnPositions.advertisementColumn = getColumnNumberByName.call(this,'Advertentie');
 			this.columnPositions.priceColumn         = getColumnNumberByName.call(this,'Vraagprijs');
 			this.columnPositions.pricetypeColumn     = getColumnNumberByName.call(this,'Prijssoort');
+			this.columnPositions.otherPriceType      = getColumnNumberByName.call(this,'Kies ander prijstype');
 			this.columnPositions.paypalColumn        = getColumnNumberByName.call(this,'Paypal');
 			this.columnPositions.inputColumn         = getColumnNumberByName.call(this,'Overige invoervelden');
 			this.columnPositions.addPictureColumn    = getColumnNumberByName.call(this,'Voeg foto toe');
@@ -155,27 +157,30 @@ var ExcelReader = (function() {
 		/* Fetch column position */
 		var columnPositions = getColumnPositions.call(this);
 
-		record.nrofrows      = this.excelSheet.Cells.Find("*", this.excelSheet.Cells(1), -4163, 1, 1, 2).Row
+		record.nrofrows       = this.excelSheet.Cells.Find("*", this.excelSheet.Cells(1), -4163, 1, 1, 2).Row
 
-		record.category      = this.excelSheet.Cells(nr+1, columnPositions.categoryColumn).Value;
-		record.dropdowns     = this.excelSheet.Cells(nr+1, columnPositions.dropdownColumn).Value;
-		record.checkboxes    = this.excelSheet.Cells(nr+1, columnPositions.checkboxColumn).Value;
-		record.inputfields   = this.excelSheet.Cells(nr+1, columnPositions.inputColumn).Value;
-		record.pictures      = this.excelSheet.Cells(nr+1, columnPositions.firstPictureColumn).Value;
+		record.category       = this.excelSheet.Cells(nr+1, columnPositions.categoryColumn).Value;
+		record.dropdowns      = this.excelSheet.Cells(nr+1, columnPositions.dropdownColumn).Value;
+		record.checkboxes     = this.excelSheet.Cells(nr+1, columnPositions.checkboxColumn).Value;
+		record.inputfields    = this.excelSheet.Cells(nr+1, columnPositions.inputColumn).Value;
+		record.pictures       = [];
 
-		record.title         = this.excelSheet.Cells(nr+1, columnPositions.titleColumn).Value;
-		record.advertisement = this.excelSheet.Cells(nr+1, columnPositions.advertisementColumn).Value;
-		record.price         = this.excelSheet.Cells(nr+1, columnPositions.priceColumn).Value;
-		record.pricetype     = this.excelSheet.Cells(nr+1, columnPositions.pricetypeColumn).Value;
-		record.paypal        = this.excelSheet.Cells(nr+1, columnPositions.paypalColumn).Value;
+		record.title          = this.excelSheet.Cells(nr+1, columnPositions.titleColumn).Value;
+		record.advertisement  = this.excelSheet.Cells(nr+1, columnPositions.advertisementColumn).Value;
+		record.price          = this.excelSheet.Cells(nr+1, columnPositions.priceColumn).Value;
+		record.pricetype      = this.excelSheet.Cells(nr+1, columnPositions.pricetypeColumn).Value;
+		record.otherpricetype = this.excelSheet.Cells(nr+1, columnPositions.otherPriceType).Value;
+		record.paypal         = this.excelSheet.Cells(nr+1, columnPositions.paypalColumn).Value;
 
-		var pictureIndex = columnPositions.firstPictureColumn+1;
-
-		while (typeof this.excelSheet.Cells(nr+1, pictureIndex).Value !== 'undefined' && 
-                        pictureIndex < (this.MAX_NR_OF_PICTURES + parseInt(columnPositions.firstPictureColumn))) 
-                {
-			record.pictures += ';' + this.excelSheet.Cells(nr+1,pictureIndex++).Value;
-		}
+		var pictureIndex = columnPositions.firstPictureColumn;
+                var picPath = null;
+                do {
+                    picPath = this.excelSheet.Cells(nr+1, pictureIndex++).Value;
+                    if (typeof picPath !== 'undefined' && $.trim(picPath)!=='')
+                        record.pictures.push(picPath);
+                    else break;
+                }
+		while (pictureIndex < (this.MAX_NR_OF_PICTURES + parseInt(columnPositions.firstPictureColumn)));
 
                 $.each(record, function(key, value) {
                     if (typeof value==='undefined')
@@ -189,16 +194,6 @@ var ExcelReader = (function() {
 				if (val!=='') {
                                         var key="category"+(ix+1);
 					record[key]=val;
-				}
-			});
-		}
-
-		if (typeof record.pictures !== 'undefined') {
-			record.pictures = record.pictures.split(";");
-			$.each(record.pictures, function(ix,val) {
-				val=$.trim(val);
-				if (val!=='') {
-					record.pictures[ix]=val;
 				}
 			});
 		}
