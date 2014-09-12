@@ -48,13 +48,15 @@ var FormFiller = (function() {
 
     "use strict";
 
-    function FormFiller(eventHandler) {
+    function FormFiller(eventHandler, recordStatusHandler) {
 
+        this.record = null;
         // Target window is set in FormFiller.fillForm()
         this.targetWindow = null;
 
         // Set FormFiller.eventHandler. See also instantiation in HTMLTableHandler.onClickRecord().
         this.eventHandler = eventHandler;
+        this.recordStatusHandler = recordStatusHandler;
         this.errors = [];
         this.postPictureErrors = [];
 
@@ -69,25 +71,22 @@ var FormFiller = (function() {
         return this.eventHandler.isActive();
     }
 
+    FormFiller.prototype.getRecord = function() {
+        return this.record;
+    }
+
     FormFiller.prototype.getErrors = function() {
         return this.eventHandler.getErrors().concat(this.postPictureErrors).concat(this.errors);
     }
 
-    FormFiller.prototype.setStatusMessage = function(text) {
-        $("#status").css("color","#21469e").text(text);
-    }
-
-    FormFiller.prototype.setErrorMessage = function(text) {
-        $("#status").css("color","#d01f3c").text(text);
-    }
-
-    FormFiller.prototype.setColorStatusMessageRed = function() {
-        $("#status").css("color","#d01f3c");
+    FormFiller.prototype.hasErrors = function() {
+        return this.getErrors().length!==0;
     }
 
     FormFiller.prototype.fillForm = function(targetWindow, record, callbackOnReady) {
 
         // Window with the form to fill
+        this.record = record;
         this.targetWindow = targetWindow;
         this.$ = targetWindow.$;
 
@@ -118,7 +117,7 @@ var FormFiller = (function() {
     function waitForConditionAndExecute(uniqueIDString, condition, action, maxRetries) {
         var _this = this;
         var callback = function() {
-            _this.setStatusMessage("Bezig met: " + uniqueIDString);
+            _this.recordStatusHandler("Bezig met: " + uniqueIDString);
         }
         this.eventHandler.waitForConditionAndExecute(uniqueIDString, condition, action, null, callback, maxRetries);
     }
@@ -286,7 +285,6 @@ var FormFiller = (function() {
     var PictureRules = {
         "pictures": {
             "action": function(ix, picPath, uniqueIDString, maxRetries) {
-                this.setStatusMessage("Bezig met: uploaden foto's");
                 postPicture.call(this, ix, picPath, uniqueIDString, maxRetries);
             },
             "getUniqueSlotID": function(ix) {

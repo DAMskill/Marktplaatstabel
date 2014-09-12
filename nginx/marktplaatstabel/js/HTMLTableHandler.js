@@ -23,6 +23,7 @@ var HTMLTableHandler = (function() {
 
         function HTMLTableHandler(excelReader) {
 
+            this.nginxPlaceAdURI = "/ajaxPlaatsAdvertentie.html";
             this.excelReader = excelReader;
             this.record = null;
             this.eventHandler = null;
@@ -33,8 +34,6 @@ var HTMLTableHandler = (function() {
             this.recordsQueue=[];
             this.totalNrOfAdsPlaced = 0;
             this.totalNrOfRecordsInQueue = 0;
-            this.totalNrOfRecordsSubmitted = 0;
-            this.totalNrOfRecordsSubmittedFinished = 0;
 
             this.checkIfRecordFromQueueIsDone = null;
             this.checkIfRecordFromQueueIsDoneInterval = 1000;
@@ -47,13 +46,65 @@ var HTMLTableHandler = (function() {
             this.loadCurrentRecordFunction = null;
             this.currentFormWindow = null;
             this.formFiller = null; // FormFiller instance initialized in onClickRecord()
+            this.openExcelSheetInterval = null;
+        }
+
+        function tryToOpenExcelSheet(callback) {
+ 
+            var _this = this; // save context for setInterval
+
+            try {
+                    _this.excelReader.openExcelSheet();
+                    $("div#activeXError").hide();
+                    clearInterval(_this.openExcelSheetInterval);
+                    if (typeof callback==='function')
+                        callback();
+                    return true;
+            }
+            catch (error) {
+
+                    setMessage("");
+                    _this.excelReader.closeExcelSheet();
+
+                    if (error.number===-2146827859) {
+                            /* Show ActiveX explanation and keep trying to open Excel */
+                            $("div#activeXError:hidden").show();
+                    }
+                    else if (error.number===-2146827284) {
+                            $("div#fileNotFound div.errorMessage div.fullErrorMessage").append(error.message);
+                            $("div#fileNotFound:hidden").show();
+                            clearInterval(_this.openExcelSheetInterval);
+                    }
+                    else if (error.name==='ReferenceError' && error.message==='ActiveXObject is not defined') {
+                            $("div#browserNotSupported:hidden").show();
+                            clearInterval(_this.openExcelSheetInterval);
+                    }
+                    else {
+                            $("div#unknown div.errorMessage").append(error.message);
+                            $("div#unknown:hidden").show();
+                            clearInterval(_this.openExcelSheetInterval);
+                    }
+                    return false;
+            }       
+        }
+
+        function tryToOpenExcelSheetUntilSuccesful(callback) {
+
+            setMessage("Excel wordt geopend.");
+            if (!tryToOpenExcelSheet.call(this, callback)) {
+                var _this = this; // save context for setInterval
+                /* Keep trying to open Excel sheet until user sets correct ActiveX permissions */
+                this.openExcelSheetInterval = setInterval(function() {
+                    tryToOpenExcelSheet.call(_this, callback);
+                }, 1000);
+            }
         }
 
 	HTMLTableHandler.prototype.showExcelSheetInHtmlTable = function() {
             var _this = this;
             // Open file selected in Responsive File Manager.
             // If successful call buildExcelHtmlTable().
-            this.excelReader.tryToOpenFileUntilSuccesful(function() {
+            tryToOpenExcelSheetUntilSuccesful.call(this, function() {
                 buildExcelHtmlTable.call(_this);
             });
         }
@@ -67,13 +118,26 @@ var HTMLTableHandler = (function() {
                 this.loadCurrentRecordFunction.call(this);
         }
 
-	HTMLTableHandler.prototype.onClickRecord = function(element, processingMultipleRecords) {
+        function setMessage(text) {
+            $("div#messageLeftAboveTable").text(text);
+        }
+
+        function setStatusMessage(text) {
+            $("#status").css("color","#21469e").text(text);
+        }
+
+        function setErrorMessage(text) {
+            $("#status").css("color","#d01f3c").text(text);
+        }
+
+        function recordStatusHandler(statusMessage) {
+            setStatusMessage(statusMessage);
+        }
+
+	HTMLTableHandler.prototype.onClickRecord = function(element, isProcessingMultipleRecords) {
 
                 this.eventHandler = new EventHandler();
-
-                // Initialize FormFiller with reference to Marktplaats.nl's jQuery object.
-                // Markplaats.nl is inside an iFrame that is showing Marktplaats.nl through localhost proxy.
-                this.formFiller = new FormFiller(this.eventHandler);
+                this.formFiller = new FormFiller(this.eventHandler, recordStatusHandler);
 		this.eventHandler.clearAllIntervals();
 
 		var link = element.parentNode;
@@ -83,7 +147,7 @@ var HTMLTableHandler = (function() {
                 // Status report is displayed after processing multiple records.
                 $("div#statusReport").hide();
 
-                if (typeof processingMultipleRecords!=='undefined' && processingMultipleRecords===true)
+                if (typeof isProcessingMultipleRecords!=='undefined' && isProcessingMultipleRecords===true)
                 {
                     this.loadCurrentRecordFunction = loadCurrentRecordMultiMode;
                 }
@@ -93,7 +157,7 @@ var HTMLTableHandler = (function() {
                 }
 
                 // Clear last status message
-                this.formFiller.setStatusMessage("");
+                setStatusMessage("");
 
 		window.scrollTo(0,0);
 
@@ -151,13 +215,21 @@ var HTMLTableHandler = (function() {
                 $("ul.errorList").remove();
         }
 
-        function printFormFillerErrors(errors) {
+        function printErrors(extraErrorMessage) {
+
+                var errors = this.formFiller.getErrors();
+
+                if (typeof extraErrorMessage!=="undefined" && extraErrorMessage!=="")
+                    errors.push(extraErrorMessage);
 
                 if (errors.length!==0) {
 
-                    this.formFiller.setErrorMessage("Formulier invullen mislukt");
+                    var rowNr = parseInt(this.formFiller.getRecord().nr)+1;
 
-                    var errorList = ("<ul class='errorList'><li>Record "+(parseInt(this.record.nr)+1)+"<ul>");
+                    addClassErrorToRow(rowNr);
+                    setErrorMessage("Formulier invullen/inzenden mislukt");
+
+                    var errorList = ("<ul class='errorList'><li>Record "+rowNr+"<ul>");
 
                     $.each(errors, function(ix, error) {
                         errorList += "<li>";
@@ -172,17 +244,13 @@ var HTMLTableHandler = (function() {
                 }
         }
 
-        function setResult() {
-            if (this.totalNrOfRecordsSubmitted === this.totalNrOfRecordsSubmittedFinished &&
-                    this.recordsQueue.length ===0 ) 
-            {
-                var result = "Aantal verwerkt: " + this.totalNrOfRecordsInQueue + "<br>";
-                result += "Aantal geplaatst: " + this.totalNrOfAdsPlaced + "<br>";
-                result += "Aantal mislukt: " + (this.totalNrOfRecordsInQueue - this.totalNrOfAdsPlaced);
-                $("div#statusReport").show();
-                $("div#result").html(result);
-                document.location.hash="statusReport";
-            }
+        function printResult() {
+            var result = "Aantal verwerkt: " + this.totalNrOfRecordsInQueue + "<br>";
+            result += "Aantal geplaatst: " + this.totalNrOfAdsPlaced + "<br>";
+            result += "Aantal mislukt: " + (this.totalNrOfRecordsInQueue - this.totalNrOfAdsPlaced);
+            $("div#statusReport").show();
+            $("div#result").html(result);
+            document.location.hash="statusReport";
         }
 
         function submitFormWithAjax() {
@@ -196,30 +264,24 @@ var HTMLTableHandler = (function() {
             // Gather form URL and serialize all data to post.
             var form = formWindow.$("#syi-form");
             var postData = form.serialize();
-            var formURL = form.attr("action");
 
-            ++this.totalNrOfRecordsSubmitted;
-
+            var _formFiller = this.formFiller;
             var _this = this;
+
             $.ajax(
             {
-                url : formURL,
-                type: "POST",
+                url  : _this.nginxPlaceAdURI, // see also: constructor and nginx.conf
+                type : "POST",
                 data : postData,
+                async: false, // Don't start new form until successful submission
                 success:function(data, textStatus, jqXHR) 
                 {
-                    ++_this.totalNrOfRecordsSubmittedFinished;
-
-                    // If ad description is found in HTML string
-                    if (data.indexOf(description)) {
-                        ++_this.totalNrOfAdsPlaced;
-                    }
-                    setResult.call(_this);
+                    ++_this.totalNrOfAdsPlaced;
                 },
+                // Form submission might fail due to network or other errors.
                 error: function(jqXHR, textStatus, errorThrown) 
                 {
-                    ++_this.totalNrOfRecordsSubmittedFinished;
-                    setResult.call(_this);
+                    printErrors.call(_this, "Advertentie plaatsen mislukt");
                 }
             });
         }
@@ -238,6 +300,7 @@ var HTMLTableHandler = (function() {
             }
 
             if (this.record !== null) {
+                // Markplaats.nl is inside an iFrame (currentFormWindow)
                 this.formFiller.fillForm(this.currentFormWindow, this.record, callback);
             }
         }
@@ -252,8 +315,7 @@ var HTMLTableHandler = (function() {
                 if (++_recordsQueueIntervalCounter >= _this.maxRecordsQueueIntervalExecutions) {
                     clearIntervals.call(_this);
                     _this.eventHandler.clearAllIntervals();
-                    _this.formFiller.setColorStatusMessageRed();
-                    addClassErrorToRow(_this.recordsQueue[0]+1);
+                    printErrors.call(_this, "Timeout: formulier invullen heeft te lang geduurd");
                     processNextInQueue.call(_this);
                 }
                 else {
@@ -263,22 +325,15 @@ var HTMLTableHandler = (function() {
                         clearIntervals.call(_this);
 
                         if (!validateForm.call(_this)) {
-                            var errorMessage = "Formulier validatie mislukt";
-                            _this.formFiller.setErrorMessage(errorMessage);
-                            var errors = _this.formFiller.getErrors();
-                            errors.push(errorMessage);
-                            addClassErrorToRow(_this.recordsQueue[0]+1);
-                            printFormFillerErrors.call(_this, errors);
+                            printErrors.call(_this, "Formulier validatie mislukt");
                         }
                         else {
 
-                            var errors = _this.formFiller.getErrors();
-                            if (errors.length!=0) {
-                                printFormFillerErrors.call(_this, errors);
-                                addClassErrorToRow(_this.recordsQueue[0]+1);
+                            if (_this.formFiller.hasErrors()) {
+                                printErrors.call(_this);
                             }
                             else {
-                                _this.formFiller.setStatusMessage("Excel record succesvol ingevuld");
+                                setStatusMessage("Excel record succesvol ingevuld");
 
                                 // Deselect record checkbox
                                 $("table.ExcelTable2007 > tbody > tr").eq(_this.recordsQueue[0]+1).find("input:checkbox").click();
@@ -288,6 +343,7 @@ var HTMLTableHandler = (function() {
                                 submitFormWithAjax.call(_this);
                             }
                         }
+                        // Form was either submitted or cancelled. Continue with next.
                         processNextInQueue.call(_this);
                     }
                 }
@@ -321,19 +377,16 @@ var HTMLTableHandler = (function() {
                 if (_this.formFiller.isActive()===false) {
                     clearInterval(_this.checkIfRecordReady);
 
-                    var errors = _this.formFiller.getErrors();
-                    if (errors.length!=0) {
-                        addClassErrorToRow(_this.record.nr+1);
-                        printFormFillerErrors.call(_this, errors);
+                    if (_this.formFiller.hasErrors()) {
+                        printErrors.call(_this);
                     }
                     else {
-                        _this.formFiller.setStatusMessage("Excel record succesvol ingevuld");
+                        setStatusMessage("Excel record succesvol ingevuld");
                     }
                 }
 
             }, this.checkIfRecordReadyInterval);
         }
-
 
         function inScreen2() {
             if (this.currentFormWindow.document.URL.match("https://localhost/syi/.*/.*/plaatsAdvertentie")!==null)
@@ -382,7 +435,7 @@ var HTMLTableHandler = (function() {
 		});
 
 		var record = this.excelReader.readRecord(1);
-		$("div#nrofrecords").append("Aantal records: "+(parseInt(record.nrofrows)-1)+"<b>");
+		setMessage("Aantal records: "+(parseInt(record.nrofrows)-1));
 
 		var i = 1;
 		for (; i < record.nrofrows; i++) {
@@ -390,6 +443,7 @@ var HTMLTableHandler = (function() {
 			var category = "";
 			var title = "";
 
+                        setStatusMessage("Record "+i+" wordt ingelezen");
 			if (i>1) record = this.excelReader.readRecord(i);
 
 			if (typeof record.category2 !== 'undefined')
@@ -409,6 +463,7 @@ var HTMLTableHandler = (function() {
 			$("table.ExcelTable2007 > tbody").append(str);
 			$("table.ExcelTable2007 > tbody > tr > td.hover").hover(excelTable2007MouseEnter, excelTable2007MouseLeave);
 		}
+                setStatusMessage("");
 
 		// Unhide excel table
 		$("div#tableBox").css("display", "block");
@@ -428,8 +483,6 @@ var HTMLTableHandler = (function() {
 				_this.recordsQueue.push(rowToClickOn);
 			});
                         _this.totalNrOfAdsPlaced=0;
-                        _this.totalNrOfRecordsSubmitted=0;
-                        _this.totalNrOfRecordsSubmittedFinished=0;
                         _this.totalNrOfRecordsInQueue=_this.recordsQueue.length;
                         $("div#statusReport").hide();
                         processRecordsQueue.call(_this, _this.recordsQueue);
@@ -468,6 +521,9 @@ var HTMLTableHandler = (function() {
 
                 if (this.recordsQueue.length>0) {
                     processRecordsQueue.call(this);
+                }
+                else {
+                    printResult.call(this);
                 }
 
         }

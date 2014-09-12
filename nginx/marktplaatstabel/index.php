@@ -78,7 +78,7 @@
 						<div class="errorMessage"></div>
 					</div>
 				</div>
-				<div id="nrofrecords"></div>
+				<div id="messageLeftAboveTable"></div>
 				<div id="status"></div>
                                 <div id="placeAllCheckedAds">
                                     <input id="submitAllCheckedButton" type="submit" value="Plaats advertenties">

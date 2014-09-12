@@ -90,15 +90,17 @@ class foto {
                     $data    .= fread($handle, filesize($this->fullPathFilename));
                     $data    .= "\r\n".'------pluploadboundary'.$guid."--\r\n";
 
+                    $header   = $this->getRequestHeaders($guid, $this->mpSessionID);
+
                     $params = array('http' => array(
                               'method' => 'POST',
                               'protocol_version' => 1.1,
                               //'proxy' => "tcp://localhost:8888",
                               'timeout' => 5,
-                              'content' => $data
+                              'content' => $data,
+                              'header'  => $header
                               ));
 
-                    $params['http']['header'] = $this->getRequestHeaders($guid, $this->mpSessionID);
                     $ctx = stream_context_create($params);
 
                     $fp = fopen($url, 'rb', false, $ctx);
@@ -134,47 +136,8 @@ $fullPathFilename = $_POST["picturePath"];
 $xsrfToken        = $_POST["xsrfToken"];
 $mpSessionID      = $_POST["mpSessionID"];
 
-/*
-$fp = fopen('voegfototoelog.txt', 'a');
-fwrite($fp, "\n");
-fwrite($fp, "START:");
-fwrite($fp, date('d-m-Y H:i:s'));
-fclose($fp);
- */
-
 $foto = new foto($fullPathFilename, $xsrfToken, $mpSessionID);
 $result = $foto->voegFotoToe();
-
-/*
-$fp = fopen('voegfototoelog.txt', 'a');
-fwrite($fp, "\n");
-fwrite($fp, print_r($_POST, TRUE));
-fwrite($fp, "\n\n");
-fclose($fp);
-*/
-
-/*
-$fp = fopen('voegfototoelog.txt', 'a');
-fwrite($fp, "\n");
-fwrite($fp, "STOP:");
-fwrite($fp, date('d-m-Y H:i:s'));
-fwrite($fp, print_r($fullPathFilename, TRUE));
-fwrite($fp, print_r($result, TRUE));
-fwrite($fp, "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^");
-fwrite($fp, "\n\n");
-fclose($fp);
-*/
-
-/* result example:
- 
-    {"requestToken": "1409262476370.8158261b06e2899b4002c6e5c52b2ffc",
-     "valid":true,
-     "messageKey":"",
-     "id": "2402532138" ,
-     "imageUrl":"//i.marktplaats.com/00/s/MzQ5WDQ4MA==/z/ncEAAOSwnDZT~6ON/$_82.JPG",
-     "largeImageUrl":"//i.marktplaats.com/00/s/MzQ5WDQ4MA==/z/ncEAAOSwnDZT~6ON/$_84.JPG",
-     "extraLargeImageUrl":"//i.marktplaats.com/00/s/MzQ5WDQ4MA==/z/ncEAAOSwnDZT~6ON/$_85.JPG"}
-*/
 
 echo $result;
 

@@ -2,7 +2,7 @@
 
 [Setup]
 AppName=Marktplaatstabel
-AppVersion=1.3.6
+AppVersion=1.3.7
 DefaultDirName={pf}\Marktplaatstabel
 DefaultGroupName=Marktplaatstabel
 UninstallDisplayIcon={app}\images\marktplaatstabel.ico
@@ -15,12 +15,14 @@ PrivilegesRequired=admin
 Name: "nl"; MessagesFile: "compiler:Languages\Dutch.isl"
 
 [Files]
+;Source: "Readme.txt"; DestDir: "{app}"; Flags: isreadme
 DestDir: {app}; Source: ..\*; Excludes: "*.iss,\images\WizModernImage.bmp,\Output\*"; Flags: recursesubdirs createallsubdirs 
 Source: "..\Excel files\Voorbeeldtabel.xlsm"; DestDir: {commondocs}\Marktplaats-tabel;
-;Source: "Readme.txt"; DestDir: "{app}"; Flags: isreadme
+;The Visual C++ Redistributable Packages install runtime components that are required to run C++ applications built with Visual Studio 2012.
 Source: "..\Visual C++ Redistributable for Visual Studio 2012 Update 4\vcredist_x86.exe"; DestDir: {tmp}; Flags: deleteafterinstall
 
 [Registry]
+;Add location of Visual C++ DLL libraries to path. PHP requires MSVCR110.DLL.
 Root: HKLM; Subkey: "SYSTEM\CurrentControlSet\Control\Session Manager\Environment"; ValueType: expandsz; ValueName: "Path"; ValueData: "{olddata};C:\Windows\SysWow64"; Check: NeedsAddPath('C:\Windows\SysWow64')
 
 [Dirs]
@@ -49,6 +51,9 @@ Filename: {app}\misc\nssm.exe; Parameters: "stop MARKTPLAATSTABEL-NGINX"; Flags:
 Filename: {app}\misc\nssm.exe; Parameters: "remove MARKTPLAATSTABEL-PHP-CGI confirm"; Flags: runhidden
 Filename: {app}\misc\nssm.exe; Parameters: "remove MARKTPLAATSTABEL-NGINX confirm"; Flags: runhidden
 Filename: {app}\misc\CertMgr.exe; Parameters: "-del -all -c server.crt -s -r localmachine root"; Flags: runhidden
+
+[UninstallDelete]
+Type: files; Name: "{app}\logs\*"
 
 [CustomMessages]
 ; See example: http://fb2epub.googlecode.com/svn/trunk/Fb2ePubSetup/scripts/products/vcredist2012.iss

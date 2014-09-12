@@ -39,7 +39,6 @@ var ExcelReader = (function() {
                    'Voeg foto toe'
             ];
 
-            this._MPEOpenExcelSheetInterval = null;
             this.excelApp = null;
             this.excelWorkbook = null;
             this.excelSheet = null;
@@ -48,43 +47,6 @@ var ExcelReader = (function() {
             this.columnPositions = null;
         }
 
-        ExcelReader.prototype.tryToOpenFileUntilSuccesful = function(callback) {
-
-            var _this = this; // save context for setInterval
-
-            /* Keep trying to open Excel sheet until user sets correct ActiveX permissions */
-            this._MPEOpenExcelSheetInterval = setInterval(function() {
-                    try {
-                            _this.openExcelSheet();
-                            $("div#activeXError").hide();
-                            clearInterval(_this._MPEOpenExcelSheetInterval);
-                            if (typeof callback==='function')
-                                callback();
-                    }
-                    catch (error) {
-                            _this.closeExcelSheet();
-
-                            if (error.number===-2146827859) {
-                                    /* Show ActiveX explanation and keep trying to open Excel */
-                                    $("div#activeXError:hidden").show();
-                            }
-                            else if (error.number===-2146827284) {
-                                    $("div#fileNotFound div.errorMessage div.fullErrorMessage").append(error.message);
-                                    $("div#fileNotFound:hidden").show();
-                                    clearInterval(_this._MPEOpenExcelSheetInterval);
-                            }
-                            else if (error.name==='ReferenceError' && error.message==='ActiveXObject is not defined') {
-                                    $("div#browserNotSupported:hidden").show();
-                                    clearInterval(_this._MPEOpenExcelSheetInterval);
-                            }
-                            else {
-                                    $("div#unknown div.errorMessage").append(error.message);
-                                    $("div#unknown:hidden").show();
-                                    clearInterval(_this._MPEOpenExcelSheetInterval);
-                            }
-                    }
-            }, 1000);
-        }
 
 	ExcelReader.prototype.openExcelSheet = function() {
             this.excelApp = new ActiveXObject("Excel.Application");
@@ -149,6 +111,36 @@ var ExcelReader = (function() {
 		return this.columnPositions;
 	}
 
+	function parseStringTo2DArray(arrayAsString) {
+
+		var splitArray = arrayAsString.split(";");
+		var newArray = new Array();
+		$.each(splitArray, function(ix,val) {
+			if (typeof val ==='undefined' || val.indexOf(":")===-1) {
+				return;
+			}
+			newArray[ix]=val.split(":");
+			// Remove leading and trailing spaces from result values of split
+			$.each(newArray[ix], function(y,val) {
+			       newArray[ix][y] = $.trim(newArray[ix][y]);
+			});
+		});
+		return newArray;
+	}
+
+	function parseStringToArray(arrayAsString, delimiter) {
+
+		var splitArray = arrayAsString.split(delimiter);
+		var newArray = new Array();
+		$.each(splitArray, function(ix,val) {
+			if (typeof val ==='undefined' || val==='') {
+				return;
+			}
+			newArray[ix]=$.trim(val);
+		});
+		return newArray;
+	}
+
 	ExcelReader.prototype.readRecord = function(nr) {
 
 		var record = {};
@@ -172,6 +164,11 @@ var ExcelReader = (function() {
 		record.otherpricetype = this.excelSheet.Cells(nr+1, columnPositions.otherPriceType).Value;
 		record.paypal         = this.excelSheet.Cells(nr+1, columnPositions.paypalColumn).Value;
 
+                $.each(record, function(key, value) {
+                    if (typeof value==='undefined')
+                        delete record[key];
+                });
+
 		var pictureIndex = columnPositions.firstPictureColumn;
                 var picPath = null;
                 do {
@@ -182,65 +179,25 @@ var ExcelReader = (function() {
                 }
 		while (pictureIndex < (this.MAX_NR_OF_PICTURES + parseInt(columnPositions.firstPictureColumn)));
 
-                $.each(record, function(key, value) {
-                    if (typeof value==='undefined')
-                        delete record[key];
-                });
+                // Process categories. See also: FormFiller.CategoryRules
+                var categoryArray = parseStringToArray(record.category, ";");
+		$.each(categoryArray, function(ix,val) {
+                        // Put each category in a separate record variable.
+                        var key="category"+(ix+1);
+			record[key]=val;
+		});
 
-		if (typeof record.category !== 'undefined') {
-			record.category = record.category.split(";");
-			$.each(record.category, function(ix,val) {
-				val=$.trim(val);
-				if (val!=='') {
-                                        var key="category"+(ix+1);
-					record[key]=val;
-				}
-			});
-		}
-
-		function parseStringTo2DArray(arrayAsString) {
-
-			var splitArray = arrayAsString.split(";");
-			var newArray = new Array();
-			$.each(splitArray, function(ix,val) {
-				if (typeof val ==='undefined' || val.indexOf(":")===-1) {
-					return;
-				}
-				newArray[ix]=val.split(":");
-				// Remove leading and trailing spaces from result values of split
-				$.each(newArray[ix], function(y,val) {
-				       newArray[ix][y] = $.trim(newArray[ix][y]);
-				});
-			});
-			return newArray;
-		}
-
-		function parseStringToArray(arrayAsString) {
-
-			var splitArray = arrayAsString.split(",");
-			var newArray = new Array();
-			$.each(splitArray, function(ix,val) {
-				if (typeof val ==='') {
-					return;
-				}
-				newArray[ix]=$.trim(val);
-			});
-			return newArray;
-		}
-
-		if (typeof record.dropdowns !== 'undefined') {
+		if (typeof record.dropdowns !== 'undefined')
 			record.dropdowns = parseStringTo2DArray(record.dropdowns);
-		}
 
 		if (typeof record.checkboxes !== 'undefined')
-			record.checkboxes = parseStringToArray(record.checkboxes);
+			record.checkboxes = parseStringToArray(record.checkboxes, ",");
 
 		if (typeof record.paypal !== 'undefined')
 			record.paypal = record.paypal.toLowerCase();
 
-		if (typeof record.inputfields !== 'undefined') {
+		if (typeof record.inputfields !== 'undefined')
 			record.inputfields = parseStringTo2DArray(record.inputfields);
-		}
 
 		return record;
 	}
