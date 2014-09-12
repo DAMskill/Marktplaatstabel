@@ -1,3 +1,9 @@
+12-sep-2014
+   Version 1.5.1
+	- Nginx.conf Lua code moved to separate configuration files
+	- Improved error handling when submitting a queue of records
+	- Various bug fixes and code cleanup
+
 05-sep-2014
    Version 1.5.0
 	- Added status report

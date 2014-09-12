@@ -63,6 +63,7 @@ var EventHandler = (function() {
     function intervalFunction(uniqueIDString, condition, action, callback) {
 
         try {
+
             var maxRetries = this.domChangeTimer[uniqueIDString].maxRetries;
 
             if (typeof maxRetries === 'undefined' || this.domChangeTimer[uniqueIDString].maxRetries-- > 0)

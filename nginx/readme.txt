@@ -37,6 +37,7 @@ Aankruisvakjes
 Advertentie
 Vraagprijs
 Prijssoort
+Kies ander prijstype
 Paypal
 Overige invoervelden  (naam1: waarde1; naam2: waarde2)
 Voeg foto toe
