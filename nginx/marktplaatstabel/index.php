@@ -18,7 +18,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *******************************************************************************/
 ?>
-<?php require('ResponsiveFilemanager/config/config.php'); ?>
+<?php require('ResponsiveFilemanager/filemanager/config/config.php'); ?>
 <!DOCTYPE HTML>
 <html>
 
@@ -119,7 +119,7 @@
         <div style="margin:20px;">
 	<div id="maintitle">Marktplaatstabel</div>
         Selecteer een Excel bestand:
-	<iframe id="responsiveFilemanager" src="ResponsiveFilemanager/dialog.php?type=0"></iframe>
+	<iframe id="responsiveFilemanager" src="ResponsiveFilemanager/filemanager/dialog.php?type=0"></iframe>
 	</div>
 
 	</body>
