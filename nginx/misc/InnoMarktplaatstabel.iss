@@ -2,7 +2,7 @@
 
 [Setup]
 AppName=Marktplaatstabel
-AppVersion=1.3.7
+AppVersion=1.3.8
 DefaultDirName={pf}\Marktplaatstabel
 DefaultGroupName=Marktplaatstabel
 UninstallDisplayIcon={app}\images\marktplaatstabel.ico
@@ -16,7 +16,7 @@ Name: "nl"; MessagesFile: "compiler:Languages\Dutch.isl"
 
 [Files]
 ;Source: "Readme.txt"; DestDir: "{app}"; Flags: isreadme
-DestDir: {app}; Source: ..\*; Excludes: "*.iss,\images\WizModernImage.bmp,\Output\*"; Flags: recursesubdirs createallsubdirs 
+DestDir: {app}; Source: ..\*; Excludes: "*.iss, *.log, *.swp, \images\WizModernImage.bmp, Output\*"; Flags: recursesubdirs createallsubdirs 
 Source: "..\Excel files\Voorbeeldtabel.xlsm"; DestDir: {commondocs}\Marktplaats-tabel;
 ;The Visual C++ Redistributable Packages install runtime components that are required to run C++ applications built with Visual Studio 2012.
 Source: "..\Visual C++ Redistributable for Visual Studio 2012 Update 4\vcredist_x86.exe"; DestDir: {tmp}; Flags: deleteafterinstall

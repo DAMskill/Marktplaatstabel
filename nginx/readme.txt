@@ -13,7 +13,7 @@ bundel van de volgende open-source software:
 - PHP 5.5.14 php-5.5.14-nts-Win32-VC11-x86.zip
   http://windows.php.net/qa/
   http://windows.php.net/downloads/releases/archives/
-- RFM 9.6.0
+- RFM 9.7.2
   http://www.responsivefilemanager.com/
 - Visual C++ Redistributable for Visual Studio 2012 Update 4
   http://www.visualstudio.com/downloads/download-visual-studio-vs
