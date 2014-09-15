@@ -153,6 +153,8 @@ iframe#myframe {
 }
 
 div#excelFileHeader {
+        text-overflow: ellipsis;
+        overflow-x: hidden;
 	clear:both;
 }
 
