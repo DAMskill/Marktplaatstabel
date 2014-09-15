@@ -99,7 +99,7 @@
                                     <div id="result"></div>
                                 </div>
                                 <div id="errorBox">
-                                    <h4>Foutmeldingen</h3>
+                                    <h4>Foutmeldingen</h4>
                                 </div>
 			</div>
 		</div>
