@@ -21,6 +21,7 @@ var ExcelReader = (function() {
 
 	"use strict";
 
+
         function ExcelReader(fullPathExcelFile) {
 
             this.fullPathExcelFile = fullPathExcelFile;
@@ -113,32 +114,40 @@ var ExcelReader = (function() {
 
 	function parseStringTo2DArray(arrayAsString) {
 
-		var splitArray = arrayAsString.split(";");
-		var newArray = new Array();
-		$.each(splitArray, function(ix,val) {
-			if (typeof val ==='undefined' || val.indexOf(":")===-1) {
-				return;
-			}
-			newArray[ix]=val.split(":");
-			// Remove leading and trailing spaces from result values of split
-			$.each(newArray[ix], function(y,val) {
-			       newArray[ix][y] = $.trim(newArray[ix][y]);
-			});
-		});
-		return newArray;
+                if (typeof arrayAsString!=='undefined')
+                {
+                    var splitArray = arrayAsString.split(";");
+                    var newArray = new Array();
+                    $.each(splitArray, function(ix,val) {
+                            if (typeof val ==='undefined' || val.indexOf(":")===-1) {
+                                    return;
+                            }
+                            newArray[ix]=val.split(":");
+                            // Remove leading and trailing spaces from result values of split
+                            $.each(newArray[ix], function(y,val) {
+                                   newArray[ix][y] = $.trim(newArray[ix][y]);
+                            });
+                    });
+                    return newArray;
+                }
+                return null;
 	}
 
 	function parseStringToArray(arrayAsString, delimiter) {
 
-		var splitArray = arrayAsString.split(delimiter);
-		var newArray = new Array();
-		$.each(splitArray, function(ix,val) {
-			if (typeof val ==='undefined' || val==='') {
-				return;
-			}
-			newArray[ix]=$.trim(val);
-		});
-		return newArray;
+                if (typeof arrayAsString!=='undefined' && typeof delimiter!=='undefined')
+                {
+                    var splitArray = arrayAsString.split(delimiter);
+                    var newArray = new Array();
+                    $.each(splitArray, function(ix,val) {
+                            if (typeof val ==='undefined' || val==='') {
+                                    return;
+                            }
+                            newArray[ix]=$.trim(val);
+                    });
+                    return newArray;
+                }
+                return null;
 	}
 
 	ExcelReader.prototype.readRecord = function(nr) {
@@ -180,12 +189,19 @@ var ExcelReader = (function() {
 		while (pictureIndex < (this.MAX_NR_OF_PICTURES + parseInt(columnPositions.firstPictureColumn)));
 
                 // Process categories. See also: FormFiller.CategoryRules
-                var categoryArray = parseStringToArray(record.category, ";");
-		$.each(categoryArray, function(ix,val) {
-                        // Put each category in a separate record variable.
-                        var key="category"+(ix+1);
-			record[key]=val;
-		});
+                if (typeof record.category !== 'undefined')
+                { 
+                    // Split by semicolon or unicode right-pointing triangle
+                    var categoryArray = parseStringToArray(record.category, /[;\u25B6]/);
+                    if (parseStringToArray!==null) {
+                        $.each(categoryArray, function(ix,val) {
+                                // Put each category in a separate record variable.
+                                var key="category"+(ix+1);
+                                record[key]=val;
+                        });
+                    }
+                    delete record.category;
+                }
 
 		if (typeof record.dropdowns !== 'undefined')
 			record.dropdowns = parseStringTo2DArray(record.dropdowns);

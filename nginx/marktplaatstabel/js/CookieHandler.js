@@ -49,10 +49,16 @@ var CookieHandler = (function() {
         document.cookie = name + "=" + expirationDate + "; path=/";
     }
 
+    function isUserLoggedIn() {
+        var loggedInCookie = getCookie("LoggedIn");
+        return loggedInCookie==="true";
+    }
+
     return {
         "setCookie": setCookie,
         "getCookie": getCookie,
-        "delCookie": delCookie
+        "delCookie": delCookie,
+        "isUserLoggedIn": isUserLoggedIn
     }
 
 })();

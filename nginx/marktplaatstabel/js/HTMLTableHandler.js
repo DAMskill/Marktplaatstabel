@@ -35,12 +35,14 @@ var HTMLTableHandler = (function() {
             this.totalNrOfAdsPlaced = 0;
             this.totalNrOfRecordsInQueue = 0;
 
+            // Multimode record ready check interval
             this.checkIfRecordFromQueueIsDone = null;
             this.checkIfRecordFromQueueIsDoneInterval = 1000;
             // Number of checkIfRecordFromQueueIsDoneInterval executions
             // before aborting.
             this.maxRecordsQueueIntervalExecutions = 4*60; // (*1000 = 4 minutes)
 
+            // Single mode check if record ready interval
             this.checkIfRecordReady = null;
             this.checkIfRecordReadyInterval = 1000;
             this.loadCurrentRecordFunction = null;
@@ -138,7 +140,6 @@ var HTMLTableHandler = (function() {
 
                 this.eventHandler = new EventHandler();
                 this.formFiller = new FormFiller(this.eventHandler, recordStatusHandler);
-		this.eventHandler.clearAllIntervals();
 
 		var link = element.parentNode;
 		var linkSplit = link.id.split("-");
@@ -175,6 +176,8 @@ var HTMLTableHandler = (function() {
                     else throw error;
 		}
 
+                removeClassErrorFromRow(parseInt(this.record.nr)+1);
+
                 var backLink = $("#myframe").contents().find("a.backlink > span");
 
                 if (backLink.length > 0) {
@@ -193,7 +196,7 @@ var HTMLTableHandler = (function() {
                         $("div#notLoggedInWarning").hide();
 			$("input#submitAllCheckedButton").val("Plaats "+this.nrOfCheckedRecords+" advertentie(s)");
 
-                        if (!userIsLoggedIn()) {
+                        if (!CookieHandler.isUserLoggedIn()) {
                             $("input#submitAllCheckedButton").prop("disabled", true);
                             $("div#notLoggedInWarning").show();
                         }
@@ -293,10 +296,8 @@ var HTMLTableHandler = (function() {
 
             clearIntervals.call(_this);
 
-            if (inScreen2.call(this)===true) {
-                callback = function() {
-                    multiModeCallback.call(_this);
-                }
+            callback = function() {
+                multiModeCallback.call(_this);
             }
 
             if (this.record !== null) {
@@ -314,35 +315,41 @@ var HTMLTableHandler = (function() {
 
                 if (++_recordsQueueIntervalCounter >= _this.maxRecordsQueueIntervalExecutions) {
                     clearIntervals.call(_this);
-                    _this.eventHandler.clearAllIntervals();
                     printErrors.call(_this, "Timeout: formulier invullen heeft te lang geduurd");
                     processNextInQueue.call(_this);
                 }
                 else {
 
-                    if (!_this.eventHandler.isActive() && inScreen2.call(_this) && canValidateForm.call(_this) ) {
+                    if (!_this.eventHandler.isActive()) {
 
-                        clearIntervals.call(_this);
-
-                        if (!validateForm.call(_this)) {
-                            printErrors.call(_this, "Formulier validatie mislukt");
+                        if (!inFinalForm.call(_this)) {
+                            clearIntervals.call(_this);
+                            if (_this.formFiller.hasErrors())
+                                printErrors.call(_this);
                         }
                         else {
+                           
+                            if (canValidateForm.call(_this)) {
 
-                            if (_this.formFiller.hasErrors()) {
-                                printErrors.call(_this);
-                            }
-                            else {
-                                setStatusMessage("Excel record succesvol ingevuld");
+                                clearIntervals.call(_this);
+                                var isInvalidForm = !validateForm.call(_this);
 
-                                // Deselect record checkbox
-                                $("table.ExcelTable2007 > tbody > tr").eq(_this.recordsQueue[0]+1).find("input:checkbox").click();
+                                if (_this.formFiller.hasErrors() || isInvalidForm) {
+                                    printErrors.call(_this, isInvalidForm ? "Formulier validatie mislukt" : "");
+                                }
+                                else {
+                                    setStatusMessage("Excel record succesvol ingevuld");
 
-                                // Submit form with ajax to prevent a redirect and
-                                // opening a new window for every advertisement.
-                                submitFormWithAjax.call(_this);
+                                    // Deselect record checkbox
+                                    $("table.ExcelTable2007 > tbody > tr").eq(_this.recordsQueue[0]+1).find("input:checkbox").click();
+
+                                    // Submit form with ajax to prevent a redirect and
+                                    // opening a new window for every advertisement.
+                                    submitFormWithAjax.call(_this);
+                                }
                             }
                         }
+
                         // Form was either submitted or cancelled. Continue with next.
                         processNextInQueue.call(_this);
                     }
@@ -357,10 +364,8 @@ var HTMLTableHandler = (function() {
 
                 clearIntervals.call(this);
 
-                if (inScreen2.call(this)===true) {
-                    callback = function() {
-                        singleModeCallback.call(_this);
-                    }
+                callback = function() {
+                    singleModeCallback.call(_this);
                 }
 
                 if (this.record !== null) {
@@ -381,15 +386,17 @@ var HTMLTableHandler = (function() {
                         printErrors.call(_this);
                     }
                     else {
-                        setStatusMessage("Excel record succesvol ingevuld");
+                        if (inFinalForm.call(_this)===true) {
+                            setStatusMessage("Excel record succesvol ingevuld");
+                        }
                     }
                 }
 
             }, this.checkIfRecordReadyInterval);
         }
 
-        function inScreen2() {
-            if (this.currentFormWindow.document.URL.match("https://localhost/syi/.*/.*/plaatsAdvertentie")!==null)
+        function inFinalForm() {
+            if (this.currentFormWindow.document.URL.match("https://localhost/syi/.*/plaatsAdvertentie.*")!==null)
             {
                 return true;
             }
@@ -420,11 +427,6 @@ var HTMLTableHandler = (function() {
                     return false;
                 }
                 return true;
-        }
-
-        function userIsLoggedIn() {
-                var loggedInCookie = CookieHandler.getCookie("LoggedIn");
-                return loggedInCookie==="true";
         }
 
 	function buildExcelHtmlTable() {
@@ -470,7 +472,7 @@ var HTMLTableHandler = (function() {
 
 		$("input#submitAllCheckedButton").click(function() {
                         // If user clicked before refreshPlaceAdsButtonInterval() fired
-                        if (!userIsLoggedIn()) {
+                        if (!CookieHandler.isUserLoggedIn()) {
                             refreshPlaceAdsButton.call(_this);
                             return;
                         }
@@ -529,6 +531,7 @@ var HTMLTableHandler = (function() {
         }
 
         function clearIntervals() {
+		this.eventHandler.clearAllIntervals();
                 clearInterval(this.checkIfRecordFromQueueIsDone);
                 clearInterval(this.checkIfRecordReady); // started in loadCurrentRecord()
         }
@@ -536,6 +539,10 @@ var HTMLTableHandler = (function() {
         function addClassErrorToRow(rowNr) {
             removeClassActiveFromColumns();
             $("table.ExcelTable2007 > tbody > tr").eq(rowNr).addClass('error');
+        }
+
+        function removeClassErrorFromRow(rowNr) {
+            $("table.ExcelTable2007 > tbody > tr").eq(rowNr).removeClass('error');
         }
 
 	function processRecordsQueue() {
