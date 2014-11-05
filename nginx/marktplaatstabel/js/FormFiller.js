@@ -133,7 +133,7 @@ var FormFiller = (function() {
             },
             /* Click on first category when first category list is preloaded to set MutationObserver in motion */
             "action": function(categoryString) {
-                var _this = this;
+                this.$("#syi-categories-title").click();
                 this.$("#syi-categories-l1 ul.listbox li").filter(function() {
                     return $.trim($(this).text().toUpperCase()) === $.trim(categoryString.toUpperCase());
                 }).click();
@@ -141,7 +141,39 @@ var FormFiller = (function() {
         },
         "category2": {
             "target": function() {
-                return this.$("#syi-categories-bucket ul.listbox")[0];
+                // Category Auto's has only one subcategory
+                if (this.record.category1==="Auto's") {
+                    return this.$("#syi-categories-l2 ul.listbox")[0];
+                }
+                else return this.$("#syi-categories-bucket ul.listbox")[0];
+            },
+            "action": function(categoryString, uniqueIDString, maxRetries) {
+
+                // Handling of licenseplate
+                if (this.record.category1==="Auto's") {
+
+                    var _this = this;
+
+                    if (categoryString.length===8 && categoryString.split("-").length===3) {
+                        if (!CookieHandler.isUserLoggedIn()) {
+                            this.eventHandler.cancelSlot(uniqueIDString);
+                            this.errors.push("Voor het zoeken op nummerplaat dient u eerst in te loggen");
+                        }
+                        else {
+                            this.$("#syi-categories-title").click();
+                            this.$("#licensePlate").val(categoryString);
+
+                            var condition = function() { if (_this.$("#licensePlate:visible").length > 0) return true; } 
+                            var action = function() { _this.$("#search-licenseplate-button").click(); }
+
+                            waitForConditionAndExecute.call(this, uniqueIDString, condition, action, maxRetries);
+                        }
+                    }
+                }
+            },
+            "maxRetries": 10,
+            "getUniqueSlotID": function(item) {
+                return "keuzelijst '" + item + "'";
             }
         },
         "category3": {
@@ -300,7 +332,7 @@ var FormFiller = (function() {
             "rules": CategoryRules,
             "handler": categoryHandler
         }],
-        "https://localhost/syi/.*/.*/plaatsAdvertentie": [{
+        "https://localhost/syi/.*/plaatsAdvertentie.*": [{
             /* Picture upload rules */
             "rules": PictureRules,
             "handler": pictureHandler
@@ -462,8 +494,15 @@ var FormFiller = (function() {
              * Sometimes category 1 is filled before mutation observer is observing.
              * The category will then be selected by the action function of the rule.
              */
-            if ("action" in rule !== false)
-                rule.action.call(_this, record[name]);
+            if ("action" in rule !== false) {
+                if (typeof rule.getUniqueSlotID=== 'function') {
+                    _this.eventHandler.reserveSlot(rule.getUniqueSlotID(name));
+                    rule.action.call(_this, record[name], rule.getUniqueSlotID(name), rule.maxRetries);
+                }
+                else {
+                    rule.action.call(_this, record[name]);
+                }
+            }
         });
     }
 

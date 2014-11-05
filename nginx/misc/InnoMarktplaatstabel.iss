@@ -2,7 +2,7 @@
 
 [Setup]
 AppName=Marktplaatstabel
-AppVersion=1.3.9
+AppVersion=1.3.9.1
 DefaultDirName={pf}\Marktplaatstabel
 DefaultGroupName=Marktplaatstabel
 UninstallDisplayIcon={app}\images\marktplaatstabel.ico
@@ -13,9 +13,18 @@ PrivilegesRequired=admin
 [Languages]
 Name: "nl"; MessagesFile: "compiler:Languages\Dutch.isl"
 
+[Dirs]
+; Responsive File Manager file location
+Name: "{commondocs}\Marktplaats-tabel"
+Name: "{commondocs}\Marktplaats-tabel\afbeeldingen"
+; Responsive File Manager picture thumbnails location
+Name: "{commondocs}\Marktplaats-tabel_thumbs"
+
 [Files]
 DestDir: {app}; Source: ..\*; Excludes: "*.iss, *.log, *.swp, \images\WizModernImage.bmp, contrib, Output, Visual C++ Redistributable for Visual Studio"; Flags: recursesubdirs createallsubdirs 
 Source: "..\Excel files\Voorbeeldtabel.xlsm"; DestDir: {commondocs}\Marktplaats-tabel;
+Source: "..\images\logo.jpg"; DestDir: {commondocs}\Marktplaats-tabel\afbeeldingen;
+Source: "..\images\screenshot*.jpg"; DestDir: {commondocs}\Marktplaats-tabel\afbeeldingen;
 
 ;The Visual C++ Redistributable Packages install runtime components that are required to run C++ applications built with Visual Studio.
 Source: "..\Visual C++ Redistributable for Visual Studio\vcredist_2010_x86.exe"; DestDir: {tmp}; Flags: deleteafterinstall
@@ -24,12 +33,6 @@ Source: "..\Visual C++ Redistributable for Visual Studio\vcredist_2012_x86.exe";
 [Registry]
 ;Add location of Visual C++ DLL libraries to path. PHP requires MSVCR110.DLL.
 Root: HKLM; Subkey: "SYSTEM\CurrentControlSet\Control\Session Manager\Environment"; ValueType: expandsz; ValueName: "Path"; ValueData: "{olddata};C:\Windows\SysWow64"; Check: NeedsAddPath('C:\Windows\SysWow64')
-
-[Dirs]
-; Responsive File Manager file location
-Name: "{commondocs}\Marktplaats-tabel"
-; Responsive File Manager picture thumbnails location
-Name: "{commondocs}\Marktplaats-tabel_thumbs"
 
 [Icons]
 Name: "{group}\Marktplaatstabel Starten"; Filename: "{app}\start.bat"; WorkingDir: "{app}"; IconFilename: "{app}\images\marktplaatstabel.ico"
@@ -47,6 +50,11 @@ Filename: "{tmp}\vcredist_2012_x86.exe"; Check: VCRedist2012NeedsInstall86; Para
 
 Filename: {app}\misc\nssm.exe; Parameters: "install MARKTPLAATSTABEL-PHP-CGI ""{app}\php\php-cgi.exe""  """"-b 127.0.0.1:9123 -c \""{app}\php\php.ini\"" """" "; Flags: runhidden
 Filename: {app}\misc\nssm.exe; Parameters: "install MARKTPLAATSTABEL-NGINX ""{app}\nginx.exe"" "; Flags: runhidden
+Filename: {app}\misc\nssm.exe; Parameters: "set MARKTPLAATSTABEL-PHP-CGI Start SERVICE_DEMAND_START"; Flags: runhidden
+Filename: {app}\misc\nssm.exe; Parameters: "set MARKTPLAATSTABEL-NGINX Start SERVICE_DEMAND_START"; Flags: runhidden
+
+;Create folder shortcut in C:\Users\{username}\Links to C:\Users\Public\Documents\Marktplaats-tabel\
+Filename: {app}\misc\nircmdc.exe; Parameters: "shortcut ""{commondocs}\Marktplaats-tabel"" ""{sd}\Users\{username}\Links\"" ""Marktplaats-tabel"" """" ""{app}\images\marktplaatstabel.ico"" 0 "; Flags: runhidden
 
 [UninstallRun]
 Filename: {app}\misc\nssm.exe; Parameters: "stop MARKTPLAATSTABEL-PHP-CGI"; Flags: runhidden
@@ -56,7 +64,23 @@ Filename: {app}\misc\nssm.exe; Parameters: "remove MARKTPLAATSTABEL-NGINX confir
 Filename: {app}\misc\CertMgr.exe; Parameters: "-del -all -c server.crt -s -r localmachine root"; Flags: runhidden
 
 [UninstallDelete]
-Type: files; Name: "{app}\logs\*"
+Type: files; Name: "{app}\logs\access.log"
+Type: files; Name: "{app}\logs\error.log"
+Type: files; Name: "{app}\logs\nginx.pid"
+Type: files; Name: "{app}\marktplaatstabel\php_errors.log"
+Type: files; Name: "{app}\marktplaatstabel\php\php_errors.log"
+Type: files; Name: "{commondocs}\Marktplaats-tabel\afbeeldingen\logo.jpg"
+Type: files; Name: "{commondocs}\Marktplaats-tabel\afbeeldingen\screenshot1.jpg"
+Type: files; Name: "{commondocs}\Marktplaats-tabel\afbeeldingen\screenshot2.jpg"
+Type: files; Name: "{commondocs}\Marktplaats-tabel\afbeeldingen\screenshot3.jpg"
+Type: files; Name: "{sd}\Users\{username}\Links\Marktplaats-tabel.lnk"
+
+Type: dirifempty; Name: "{commondocs}\Marktplaats-tabel\afbeeldingen"
+Type: dirifempty; Name: "{commondocs}\Marktplaats-tabel"
+Type: dirifempty; Name: "{commondocs}\Marktplaats-tabel_thumbs\afbeeldingen"
+Type: dirifempty; Name: "{commondocs}\Marktplaats-tabel_thumbs\Pictures"
+Type: dirifempty; Name: "{commondocs}\Marktplaats-tabel_thumbs"
+
 
 [CustomMessages]
 ; See example: http://fb2epub.googlecode.com/svn/trunk/Fb2ePubSetup/scripts/products/vcredist2012.iss

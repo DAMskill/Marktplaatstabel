@@ -49,7 +49,7 @@ var EventHandler = (function() {
     EventHandler.prototype.waitForConditionAndExecute = 
         function(uniqueIDString, condition, action, delayInMilliseconds, callback, maxRetries) 
     {
-        var uniqueID = clearTimer.call(this, uniqueIDString);
+        clearTimer.call(this, uniqueIDString);
 
         this.domChangeTimer[uniqueIDString] = {};
         this.domChangeTimer[uniqueIDString].maxRetries = maxRetries;
@@ -95,9 +95,10 @@ var EventHandler = (function() {
 
         if (this.domChangeTimer===null) return;
 
+        var _this = this;
         $.each(this.domChangeTimer, function(timer) {
-            if (typeof this.domChangeTimer[timer]==='Object' && 'interval' in this.domChangeTimer[timer])
-                clearInterval(this.domChangeTimer[timer].interval);
+            if (typeof _this.domChangeTimer[timer]==='Object' && 'interval' in _this.domChangeTimer[timer])
+                _this.clearInterval(_this.domChangeTimer[timer].interval);
         });
 
         this.domChangeTimer = {};

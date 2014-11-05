@@ -1,3 +1,10 @@
+05-nov-2014
+   Version 1.7.0
+	- Added support for category Auto's (cars)
+	- Added support for right-pointing triangle as category delimiter
+	- Inno setup: services set to manual startup with NSSM
+	- Small bugfixes
+
 15-sep-2014
    Version 1.6.1
 	- NGINX configuration cleanup
