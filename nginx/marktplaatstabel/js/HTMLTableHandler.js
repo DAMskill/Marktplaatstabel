@@ -301,7 +301,16 @@ var HTMLTableHandler = (function() {
             }
 
             if (this.record !== null) {
-                // Markplaats.nl is inside an iFrame (currentFormWindow)
+
+                // Marktplaats.nl JS code replaces the value of each input element
+                // with the value of attribute data-placeholder if it exists. This
+                // simulates the HTML5 placeholder attribute. Clear these values
+                // before filling out the form to prevent submitting the help text
+                // of these input fields (e.g. microTipText contains the text
+                // 'Bijvoorbeeld AANBIEDING' as the placeholder).
+                this.currentFormWindow.$("#syi-form :input[data-placeholder]").val('');
+
+                // Markplaats.nl is inside an iFrame (currentFormWindow).
                 this.formFiller.fillForm(this.currentFormWindow, this.record, callback);
             }
         }

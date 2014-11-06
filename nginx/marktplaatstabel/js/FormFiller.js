@@ -149,25 +149,20 @@ var FormFiller = (function() {
             },
             "action": function(categoryString, uniqueIDString, maxRetries) {
 
-                // Handling of licenseplate
                 if (this.record.category1==="Auto's") {
 
                     var _this = this;
 
+                    // Handling of licenseplate
                     if (categoryString.length===8 && categoryString.split("-").length===3) {
-                        if (!CookieHandler.isUserLoggedIn()) {
-                            this.eventHandler.cancelSlot(uniqueIDString);
-                            this.errors.push("Voor het zoeken op nummerplaat dient u eerst in te loggen");
-                        }
-                        else {
-                            this.$("#syi-categories-title").click();
-                            this.$("#licensePlate").val(categoryString);
 
-                            var condition = function() { if (_this.$("#licensePlate:visible").length > 0) return true; } 
-                            var action = function() { _this.$("#search-licenseplate-button").click(); }
+                        this.$("#syi-categories-title").click();
+                        this.$("#licensePlate").val(categoryString);
 
-                            waitForConditionAndExecute.call(this, uniqueIDString, condition, action, maxRetries);
-                        }
+                        var condition = function() { if (_this.$("#licensePlate:visible").length > 0) return true; } 
+                        var action = function() { _this.$("#search-licenseplate-button").click(); }
+
+                        waitForConditionAndExecute.call(this, uniqueIDString, condition, action, maxRetries);
                     }
                 }
             },
@@ -307,7 +302,7 @@ var FormFiller = (function() {
                     this.errors.push(item[0] + " niet gevonden");
                 }
                 else {
-                    this.$("label:Contains('" + item[0] + "')").next().val(item[1]);
+                    this.$("label:Contains('" + item[0] + "')").parent().find("input:first").val(item[1]);
                 }
             }
         }

@@ -1,3 +1,8 @@
+06-nov-2014
+   Version 1.7.1
+	- Bugfix: Input element help texts (HTML 5 placeholder simulation) are  no longer being submitted.
+	- Bugfix: Column 'Overige invoervelden' now works with a broader range of input fields.
+
 05-nov-2014
    Version 1.7.0
 	- Added support for category Auto's (cars)
