@@ -1,0 +1,82 @@
+<script>
+    // Global used by inline (better IE performance) onclick's in HTML table.ExcelTable2007.
+    // See also: HTMLTableHandler.buildExcelHtmlTable().
+    var tableHandler = null;
+
+    $(document).ready(function() {
+
+        function getFileExtension(filename) {
+            var a = filename.trim().split(".");
+            if( a.length === 1 || ( a[0] === "" && a.length === 2 ) ) {
+                return "";
+            }
+            return a.pop().toLowerCase();
+        }
+
+        var documentURL = $('<a>', { href: document.URL} )[0];
+        var path = documentURL.search.replace("?", "").replace("=","/").replace(/\+/g,"");
+        var filename = decodeURIComponent(path.replace(/.*file\//, ""));
+        var ext = getFileExtension(path);
+
+        $("#excelFileHeader b").text(filename);
+
+        if (ext==="xml") {
+            var recordReader = new XmlReader(path);
+        }
+        else {
+            var recordReader = new ExcelReader(path);
+        }
+
+        tableHandler = new HTMLTableHandler(recordReader);
+        tableHandler.showExcelSheetInHtmlTable();
+
+        $("#myframe").on("load", function() {
+            tableHandler.loadCurrentRecord();
+        });
+    });
+</script>
+<iframe id="myframe" src="http://localhost/syi/plaatsAdvertentie.html"></iframe>
+
+<div id="excelDiv">
+	<div class="headerRight">
+		<img id="logo" src="img/mpexcel-32x32.ico">
+		<div class="title">Marktplaatstabel</div>
+		<div class="topMenu"><a href="http://localhost/marktplaatstabel">Terug naar bestandsoverzicht</a></div>
+	</div>
+	<div id="headerBottom"></div>
+	<div class="body">
+		<div id="excelFileHeader">Bestand: <b></b></div>
+                <div id="help">
+			<div id="fileNotFound">
+				<div class="errorMessage">Bestand niet gevonden: <div class="fullErrorMessage"></div></div>
+			</div>
+			<div id="unknown">
+				<div class="errorMessage"></div>
+			</div>
+		</div>
+		<div id="messageLeftAboveTable"></div>
+		<div id="status"></div>
+                <br style="clear:both">
+                <div id="placeAllCheckedAds">
+                    <input id="submitAllCheckedButton" type="submit" value="Plaats advertenties">
+                    <div id="notLoggedInWarning">U dient in te loggen voordat u advertenties kunt plaatsen.</div>
+                </div>
+                <div id="tableBox">
+			<table class="ExcelTable2007">
+				<tbody>
+					<tr><th><input id="checkAll" type="checkbox"></th><th class="heading">&nbsp;</th><th>A</th><th>B</th></tr>
+					<tr><td><input type="checkbox" disabled></td><td class="heading">1</td><td><b>Titel</b></td><td><b>Rubriek</b></td></tr>
+				</tbody>
+			</table>
+
+		</div>
+                <a name="statusReport"></a>
+                <div id="statusReport">
+                    <h3>Status rapport</h3>
+                    <div id="result"></div>
+                </div>
+                <div id="errorBox">
+                    <h4>Foutmeldingen</h4>
+                </div>
+	</div>
+</div>
