@@ -48,7 +48,7 @@ var ExcelReader = (function() {
                         _this.records = data;
                         if (_this.records.length===0)
                             _this.errors.push("Geen geldig Excel document");
-                        checkRequiredColumns.call(_this);
+                        else checkRequiredColumns.call(_this);
                     },
                     error: function(error) {
                             _this.errors.push("Geen geldig Excel document");
@@ -63,13 +63,14 @@ var ExcelReader = (function() {
 	function checkRequiredColumns() {
                 var _this = this;
 		var found = null;
+                // Check first record for required field/column names
 		$.each(this.REQUIRED_COLUMN_HEADERS, function (ix, colName) {
-                    $.each(_this.records, function(i, rec) {
-			found =	_this.records[i][colName];
-			if (typeof found==='undefined') {
-				_this.errors.push("Verplichte kolom <b>'"+colName+"'</b> niet gevonden in rij "+i);
-			}
+                    var objectKeys = Object.keys(_this.records[0]).map(function(key) {
+                        return key.toLowerCase();
                     });
+                    if (objectKeys.indexOf(colName.toLowerCase())===-1) {
+                        _this.errors.push("Verplichte kolom <b>'"+colName+"'</b> niet gevonden");
+                    }
 		});
 	}
 

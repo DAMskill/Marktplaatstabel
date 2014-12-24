@@ -1,15 +1,25 @@
+<script type="text/css">
+datalist { display: none; }
+</script>
+
 <div style="margin:20px;">
     <div id="maintitle">Marktplaatstabel</div>
 
     Internet adres van uw XML Feed:
     <br/>
-    <form action="http://ssl.marktplaatstabel.services/marktplaatstabel/?file=" method="get">
-    <input name="remotefile" type="text" style="width:50%">
+    <form action="http://ssl.marktplaatstabel.services/marktplaatstabel/?remotefile=" method="get">
+    <input list="remotefile" name="remotefile" type="text" style="width:50%">
+
+    <datalist id="remotefile" title="Voorbeeld">
+      <option value="http://www.marktplaatstabel.nl/sites/default/files/voorbeeld.xml">
+    </datalist>
+
+
     <input type="submit" value="Open XML bestand">
     </form>
 
     <br/>
-    Selecteer een XML bestand:
+    Selecteer een Excel bestand:
     <br/>
     <iframe id="responsiveFilemanager" src="/filebrowser/"></iframe>
 </div>

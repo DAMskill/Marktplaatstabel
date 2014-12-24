@@ -15,12 +15,12 @@ var PhotoUploader = require('photo-uploader');
 
 var settings = {
     title        : "Marktplaatstabel",
-    version      : "1.4.0",
+    version      : "1.4.1",
     proxyURL     : "http://www..marktplaatstabel.services",
     sslProxyURL  : "http://ssl.marktplaatstabel.services",
     proxyTarget  : "www.marktplaats.nl",
     listenPort   : 80,
-    publicFolder : 'C:/Users/Public/Documents/Marktplaatstabel',
+    publicFolder : 'C:\\Users\\Public\\Documents\\Marktplaatstabel',
     appRootPath  : '/marktplaatstabel'
 };
 
@@ -100,32 +100,23 @@ var fileServer = http.createServer(function(req, res, next) {
     var extension = path.extname(fullPath).toUpperCase();
     var workbook = null;
 
-    // XLS (BIFF5/BIFF8, Excel 95-2004 spreadsheet)
-    if (extension === '.XLS') {
-        workbook = excelXLS.readFile(fullPath);
+    try {
+        // XLS (BIFF5/BIFF8, Excel 95-2004 spreadsheet) and XML (Excel 2003/2004)
+        if (['.XLS','.XML'].indexOf(extension)!==-1) {
+            workbook = excelXLS.readFile(fullPath);
+        }
+        // XLSX / XLSM / XLSB (Excel 2007+ Spreadsheet) / ODS
+        if (['.XLSX','.XLSB','.XLSM','.ODS'].indexOf(extension)!==-1) {
+            workbook = excelXLSX.readFile(fullPath);
+        }
     }
-    // XLSX / XLSM / XLSB (Excel 2007+ Spreadsheet) / ODS
-    if (['.XLSX','.XLSB','.XLSM','.ODS'].indexOf(extension)!==-1) {
-        workbook = excelXLSX.readFile(fullPath);
+    catch (error) {
+        console.log("SheetJS error, file: " + fullPath + ", error: " + error);
     }
 
     if (workbook===null) {
-        if (extension==='.XML') {
-
-            fs.readFile(fullPath, function(err, dataBuffer) {
-                if (err) {
-                    errorHandler(res, err);
-                }
-                else {
-                    res.setHeader("Access-Control-Allow-Origin", "*");
-                    res.write(dataBuffer);
-                    res.end();
-                }
-            });
-        }
-        else {
-            res.status(415); // Unsupported Media Type
-        }
+        res.status(415); // Unsupported Media Type
+        res.end();
     }
     else {
         var firstSheet = workbook.Sheets[workbook.SheetNames[0]];
@@ -157,8 +148,10 @@ var remoteFileServer = http.createServer(function(req, resXml, next) {
               path    : parsedURL.path
         };
 
-        http.request(options, function(res) {
+        var newRequest = http.request(options, function(res) {
+
               var dataBuffer = new Buffer(0);
+
               res.on('data', function (chunk) {
                   dataBuffer = Buffer.concat([dataBuffer, chunk]);
               });
@@ -167,10 +160,16 @@ var remoteFileServer = http.createServer(function(req, resXml, next) {
                   resXml.write(dataBuffer);
                   resXml.end();
               });
-        }).end();
+
+        });
+
+        newRequest.on('error', function(error) {
+            console.log("Error: " + error.message);
+        });
+
+        newRequest.end();
     }
     catch (error) {
-        console.log(2);
         errorHandler(resXml, error);
     }
 
@@ -244,13 +243,18 @@ app.get('/getdirlist', function(req, res, next) {
             throw err;
           }
           var data = [];
-          files.filter(function (file) {
-              return true;
-          }).forEach(function (file) {
+
+          files.forEach(function (file, index) {
 
                 var fullPath = path.join(currentDir, file);
                 var relativePath = path.join(query, file);
+                var indexOfLastBackSlash = query.lastIndexOf('\\');
+                var previousFolder = query.substring(0, indexOfLastBackSlash);
+
                 try {
+                    if (index===0 && query) {
+                          data.push({ Name: "Terug", IsDirectory: true, IsBackButton: true, Path: previousFolder });
+                    }
                     var isDirectory = fs.statSync(fullPath).isDirectory();
                     if (isDirectory) {
                           data.push({ Name : file, IsDirectory: true, Path : relativePath });
@@ -266,15 +270,30 @@ app.get('/getdirlist', function(req, res, next) {
                             console.log("Permission denied requesting file status on: "+fullPath);
                             break;
                     }
-                }        
-
+                }
           });
-          data = lodash.sortBy(data, function(f) { return f.Name });
+
+          data = data.sort(function(a,b) {
+              if (a.IsDirectory && !b.IsDirectory) return -1;
+              if (!a.IsDirectory && b.IsDirectory) return 1;
+
+              if (a.name > b.name) {
+                    return 1;
+              }
+              if (a.name < b.name) {
+                    return -1;
+              }
+              return 0;
+          });
+
+          //data = lodash.sortBy(data, function(f) { return f.Name });
           res.json(data);
       });
 });
 
-app.get('/filebrowser', function(req, res) { res.redirect('/filebrowser/index.html'); });
+app.get('/filebrowser', function(req, res) { 
+    res.redirect('/filebrowser/index.html?rootfolder='+settings.publicFolder); 
+});
 
 app.post('/postPicture', function(req, res) {
     req.on('photoUploaderResult', function(result) {
@@ -289,12 +308,13 @@ var placeAdvertisementProxy = httpProxy.createProxyServer({
     rejectUnauthorized: false,
 });
 
-placeAdvertisementProxy.on('proxyReq', function(proxyReq, req, res, options) {
-    var cookie = proxyReq._headers['cookie'].replace(/FLASH=.*?;/,"");
-    proxyReq.setHeader("Cookie",cookie);
-});
+placeAdvertisementProxy.on('proxyReq', function(proxyReq, req, res, options) { filterRequestHeader(proxyReq); });
 
 placeAdvertisementProxy.on('proxyRes', function(proxyRes, req, res, options) {
+
+    // Default response header filter
+    filterResponseHeader(proxyRes);
+
     // Prevent 302 redirect after XMLHttpRequest
     if (proxyRes.statusCode === 302) {
         proxyRes.statusCode = 200;

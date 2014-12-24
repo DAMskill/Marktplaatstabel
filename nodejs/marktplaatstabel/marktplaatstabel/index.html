@@ -19,7 +19,9 @@
             var documentURL = $('<a>', { href: document.URL} )[0];
             var pathToOpen = "filemanager.html";
 
-            if(documentURL.search.indexOf("file")!==-1) {
+            var path = documentURL.search.replace("?", "").replace(/=.*/,"").replace(/\+/g,"");
+
+            if(["file","remotefile"].indexOf(path)!==-1) {
                 var pathToOpen = "proxy.html";
             }
 
