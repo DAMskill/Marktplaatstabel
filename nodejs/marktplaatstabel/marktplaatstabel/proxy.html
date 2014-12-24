@@ -3,7 +3,7 @@
     // See also: HTMLTableHandler.buildExcelHtmlTable().
     var tableHandler = null;
 
-    $(document).ready(function() {
+    $(function() {
 
         function getFileExtension(filename) {
             var a = filename.trim().split(".");
@@ -15,12 +15,13 @@
 
         var documentURL = $('<a>', { href: document.URL} )[0];
         var path = documentURL.search.replace("?", "").replace("=","/").replace(/\+/g,"");
+        var isRemote = path.indexOf("remote") !== -1 ? true : false;
         var filename = decodeURIComponent(path.replace(/.*file\//, ""));
         var ext = getFileExtension(path);
 
         $("#excelFileHeader b").text(filename);
 
-        if (ext==="xml") {
+        if (isRemote) {
             var recordReader = new XmlReader(path);
         }
         else {

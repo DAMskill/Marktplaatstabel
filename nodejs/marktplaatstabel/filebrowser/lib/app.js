@@ -28,38 +28,50 @@
                       ".pptx" : "fa-file-powerpoint-o",         
                       ".txt" : "fa-file-text-o",         
                       ".log" : "fa-file-text-o",         
-                      ".doc" : "fa-file-word-o",         
-                      ".docx" : "fa-file-word-o",         
+                      ".doc" : "fa-file-word-o",        
+                      ".docx" : "fa-file-word-o",        
                     };
 
   function getFileIcon(ext) {
     return ( ext && extensionsMap[ext.toLowerCase()]) || 'fa-file-o';
   }
-  
+
+  var documentURL = $('<a>', { href: document.URL} )[0];
+  var path = documentURL.search.replace("?", "").replace("=","/").replace(/\+/g,"");
+  var rootFolder = decodeURIComponent(path.replace(/.*folder\//, ""));
+
    var currentPath = null;
    var options = {
+        "ordering":    false,
         "bProcessing": true,
         "bServerSide": false,
-        "bPaginate": false,
-        "bAutoWidth": false,
-         "sScrollY":"250px",
+        "bPaginate":   false,
+        "bAutoWidth":  false,
+        "sScrollY":    "250px",
         "fnCreatedRow" :  function( nRow, aData, iDataIndex ) {
           if (!aData.IsDirectory) return;
           var path = aData.Path;
-          $(nRow).bind("click", function(e){
-                 $.get('/getdirlist?path='+ path).then(function(data){
-                 table.fnClearTable();
-                 table.fnAddData(data);
-                 currentPath = path;
-            });
-            e.preventDefault();
+
+          $(nRow).bind("click", function(e) {
+
+              $.get('/getdirlist?path='+ path).then(function(data){
+                   table.fnClearTable();
+                   table.fnAddData(data);
+                   if (path) path="\\"+path;
+                   $("div.dataTables_scrollHead table.dataTable tr th").text(rootFolder+path);
+                   currentPath = path;
+              });
+              e.preventDefault();
           });
         }, 
         "aoColumns": [
-          { "sTitle": "", "mData": null, "bSortable": false, "sClass": "head0", "sWidth": "55px",
+          { "sTitle": rootFolder, "mData": null, "bSortable": false, "sClass": "head0", "sWidth": "55px",
             "render": function (data, type, row, meta) {
-              if (data.IsDirectory) {
-                return "<a href='#' target='_blank'><i class='fa fa-folder'></i>&nbsp;" + data.Name +"</a>";
+              if (data.IsBackButton) {
+                return "<a href='#'><i class='fa fa-arrow-left'></i><b>&nbsp;" + data.Name +"</b></a>";
+              }
+              else if (data.IsDirectory) {
+                return "<a href='#'><i class='fa fa-folder'></i>&nbsp;" + data.Name +"</a>";
               } else {
                 return "<a href='" + data.Path + "' target='_blank'><i class='fa " + getFileIcon(data.Ext) + "'></i>&nbsp;" + data.Name +"</a>";
               }
@@ -74,21 +86,6 @@
       table.fnClearTable();
       table.fnAddData(data);
       setTableRowOnClickHandler();
-  });
-
-  $(".up").bind("click", function(e){
-
-    if (!currentPath) return;
-    var idx = currentPath.lastIndexOf("/");
-    var path =currentPath.substr(0, idx);
-
-    $.get('/getdirlist?path='+ path).then(function(data){
-        table.fnClearTable();
-        table.fnAddData(data);
-        currentPath = path;
-        setTableRowOnClickHandler();
-    });
-
   });
 
   function setTableRowOnClickHandler() {

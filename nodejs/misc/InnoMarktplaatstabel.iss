@@ -2,7 +2,7 @@
 
 [Setup]
 AppName=Marktplaatstabel
-AppVersion=1.4.0
+AppVersion=1.4.1
 DefaultDirName={pf}\Marktplaatstabel
 DefaultGroupName=Marktplaatstabel
 UninstallDisplayIcon={app}\images\marktplaatstabel.ico
