@@ -8,14 +8,14 @@ var url = require('url');
 var path = require('path');
 var lodash = require('lodash');
 var express = require('express');
-var excelXLSX = require('xlsx');
 var excelXLS = require('xlsjs');
+var excelXLSX = require('xlsx');
 var app = express();
 var PhotoUploader = require('photo-uploader');
 
 var settings = {
     title        : "Marktplaatstabel",
-    version      : "1.4.1",
+    version      : "1.4.2",
     proxyURL     : "http://www..marktplaatstabel.services",
     sslProxyURL  : "http://ssl.marktplaatstabel.services",
     proxyTarget  : "www.marktplaats.nl",
@@ -109,22 +109,41 @@ var fileServer = http.createServer(function(req, res, next) {
         if (['.XLSX','.XLSB','.XLSM','.ODS'].indexOf(extension)!==-1) {
             workbook = excelXLSX.readFile(fullPath);
         }
+
+        if (workbook===null) {
+            res.status(415); // Unsupported Media Type
+            res.end();
+        }
+        else {
+            var firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+            var json = excelXLSX.utils.sheet_to_json(firstSheet);
+            res.setHeader("Access-Control-Allow-Origin", "*");
+            res.write(JSON.stringify(json));
+            res.end();
+        }
     }
     catch (error) {
-        console.log("SheetJS error, file: " + fullPath + ", error: " + error);
+        if (extension==='.XML') {
+
+            fs.readFile(fullPath, function(err, dataBuffer) {
+                if (err) {
+                    errorHandler(res, err);
+                }
+                else {
+                    res.setHeader("Access-Control-Allow-Origin", "*");
+                    res.write(dataBuffer);
+                    res.end();
+                }
+            });
+        }
+	else {
+            console.log("SheetJS error, file: " + fullPath + ", error: " + error);
+	    console.log(error.stack);
+            res.status(415); // Unsupported Media Type
+            res.end();
+	}
     }
 
-    if (workbook===null) {
-        res.status(415); // Unsupported Media Type
-        res.end();
-    }
-    else {
-        var firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-        var json = excelXLSX.utils.sheet_to_json(firstSheet);
-        res.setHeader("Access-Control-Allow-Origin", "*");
-        res.write(JSON.stringify(json));
-        res.end();
-    }
 });
 
 fileServer.on('error', function (err, req, res) { errorHandler(res, err); });
@@ -345,6 +364,8 @@ app.use(function(req, res, next) {
     switch (firstFolder) {
 
         case '/exit/':
+	    res.write("Terminating application");
+	    res.end();
             process.exit();
             break;
 

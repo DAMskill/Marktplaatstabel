@@ -33,6 +33,7 @@ var HTMLTableHandler = (function() {
             this.nginxPlaceAdURI = "/ajaxPlaatsAdvertentie.html";
             this.recordReader = recordReader;
             this.record = null;
+	    this.currentTableRow = null;
             this.eventHandler = null;
             this.refreshPlaceAdsButtonInterval = null;
             this.nrOfCheckedRecords = null;
@@ -60,7 +61,7 @@ var HTMLTableHandler = (function() {
 	HTMLTableHandler.prototype.showExcelSheetInHtmlTable = function() {
             // Open selected file
             if (this.recordErrors.length===0) {
-                buildExcelHtmlTable.call(this);
+                buildExcelHtmlTable(this);
             }
         }
 
@@ -70,7 +71,7 @@ var HTMLTableHandler = (function() {
             this.contentWindow = document.getElementById("myframe").contentWindow;
 
             if (this.loadCurrentRecordFunction!==null)
-                this.loadCurrentRecordFunction.call(this);
+                this.loadCurrentRecordFunction(this);
         }
 
         function setMessage(text) {
@@ -116,6 +117,7 @@ var HTMLTableHandler = (function() {
 
                 this.formFiller = new FormFiller(this.eventHandler, recordStatusHandler);
 
+		this.currentTableRow = element.parentNode;
 		var link = element.parentNode;
 		var linkSplit = link.id.split("-");
 		var recordToOpen = parseInt(linkSplit[1]);
@@ -141,7 +143,8 @@ var HTMLTableHandler = (function() {
 		$(link).find("td.highlight").addClass("active");
 
                 this.record = this.recordReader.readRecord(recordToOpen);
-                removeClassErrorFromRow(parseInt(this.record.nr));
+
+                removeClassErrorFromRow(this);
 
                 var backLink = $("#myframe").contents().find("a.backlink > span");
 
@@ -154,12 +157,12 @@ var HTMLTableHandler = (function() {
                 }
 	}
 
-	function refreshPlaceAdsButton() {
+	function refreshPlaceAdsButton(_this) {
 
-		if (this.nrOfCheckedRecords>0) {
+		if (_this.nrOfCheckedRecords>0) {
 			$("div#placeAllCheckedAds").show();
                         $("div#notLoggedInWarning").hide();
-			$("input#submitAllCheckedButton").val("Plaats "+this.nrOfCheckedRecords+" advertentie(s)");
+			$("input#submitAllCheckedButton").val("Plaats "+_this.nrOfCheckedRecords+" advertentie(s)");
 
                         if (!CookieHandler.isUserLoggedIn()) {
                             $("input#submitAllCheckedButton").prop("disabled", true);
@@ -183,21 +186,21 @@ var HTMLTableHandler = (function() {
                 $("ul.errorList").remove();
         }
 
-        function printErrors(extraErrorMessage) {
+        function printErrors(_this, extraErrorMessage) {
 
-                var errors = this.formFiller.getErrors();
+                var errors = _this.formFiller.getErrors();
 
                 if (typeof extraErrorMessage!=="undefined" && extraErrorMessage!=="")
                     errors.push(extraErrorMessage);
 
                 if (errors.length!==0) {
 
-                    var rowNr = parseInt(this.formFiller.getRecord().nr);
 
-                    addClassErrorToRow(rowNr);
+                    addClassErrorToRow(_this);
                     setErrorMessage("Formulier invullen/inzenden mislukt");
 
-                    var errorList = ("<ul class='errorList'><li>Record "+(rowNr+2)+"<ul>");
+                    var rowNrInTable = $("table.ExcelTable2007 > tbody > tr").index(_this.currentTableRow);
+                    var errorList = ("<ul class='errorList'><li>Record "+(rowNrInTable)+"<ul>");
 
                     $.each(errors, function(ix, error) {
                         errorList += "<li>";
@@ -212,16 +215,16 @@ var HTMLTableHandler = (function() {
                 }
         }
 
-        function printResult() {
-            var result = "Aantal verwerkt: " + this.totalNrOfRecordsInQueue + "<br>";
-            result += "Aantal geplaatst: " + this.totalNrOfAdsPlaced + "<br>";
-            result += "Aantal mislukt: " + (this.totalNrOfRecordsInQueue - this.totalNrOfAdsPlaced);
+        function printResult(_this) {
+            var result = "Aantal verwerkt: " + _this.totalNrOfRecordsInQueue + "<br>";
+            result += "Aantal geplaatst: " + _this.totalNrOfAdsPlaced + "<br>";
+            result += "Aantal mislukt: " + (_this.totalNrOfRecordsInQueue - _this.totalNrOfAdsPlaced);
             $("div#statusReport").show();
             $("div#result").html(result);
             document.location.hash="statusReport";
         }
 
-        function submitFormWithAjax() {
+        function submitFormWithAjax(_this) {
 
             var formWindow = document.getElementById("myframe").contentWindow;
 
@@ -233,8 +236,7 @@ var HTMLTableHandler = (function() {
             // Serialize all form data to post.
             var postData = form.serialize();
 
-            var _formFiller = this.formFiller;
-            var _this = this;
+            var _formFiller = _this.formFiller;
 
             $.ajax(
             {
@@ -249,23 +251,22 @@ var HTMLTableHandler = (function() {
                 // Form submission might fail due to network or other errors.
                 error: function(jqXHR, textStatus, errorThrown) 
                 {
-                    printErrors.call(_this, "Advertentie plaatsen mislukt");
+                    printErrors(_this, "Advertentie plaatsen mislukt");
                 }
             });
         }
 
-        function loadCurrentRecordMultiMode() {
+        function loadCurrentRecordMultiMode(_this) {
 
-            var _this = this;
             var callback = null;
 
-            clearIntervals.call(_this);
+            clearIntervals(_this);
 
             callback = function() {
-                multiModeCallback.call(_this);
+                multiModeCallback(_this);
             }
 
-            if (this.record !== null) {
+            if (_this.record !== null) {
 
                 // Marktplaats.nl JS code replaces the value of each input element
                 // with the value of attribute data-placeholder if it exists. This
@@ -273,25 +274,24 @@ var HTMLTableHandler = (function() {
                 // before filling out the form to prevent submitting the help text
                 // of these input fields (e.g. microTipText contains the text
                 // 'Bijvoorbeeld AANBIEDING' as the placeholder).
-                this.contentWindow.$("#syi-form :input[data-placeholder]").val('');
+                _this.contentWindow.$("#syi-form :input[data-placeholder]").val('');
 
                 // Markplaats.nl is inside an iFrame (contentWindow).
-                this.formFiller.fillForm(this.contentWindow, this.record, callback);
+                _this.formFiller.fillForm(_this.contentWindow, _this.record, callback);
             }
         }
 
-        function multiModeCallback() {
+        function multiModeCallback(_this) {
 
             var _recordsQueueIntervalCounter = 0;
-            var _this = this;
 
-            this.checkIfRecordFromQueueIsDone = setInterval(function() {
+            _this.checkIfRecordFromQueueIsDone = setInterval(function() {
 
                 if (++_recordsQueueIntervalCounter >= _this.maxRecordsQueueIntervalExecutions) {
-                    clearIntervals.call(_this);
+                    clearIntervals(_this);
                     _this.record=null;
-                    printErrors.call(_this, "Timeout: formulier invullen heeft te lang geduurd");
-                    processNextInQueue.call(_this);
+                    printErrors(_this, "Timeout: formulier invullen heeft te lang geduurd");
+                    processNextInQueue(_this);
                 }
                 else {
 
@@ -299,70 +299,68 @@ var HTMLTableHandler = (function() {
 
                         if (!_this.formFiller.inFinalForm()) {
                             if (_this.formFiller.hasErrors()) {
-                                clearIntervals.call(_this);
+                                clearIntervals(_this);
                                 _this.record=null;
-                                printErrors.call(_this);
+                                printErrors(_this);
                             }
                         }
                         else {
                            
-                            if (canValidateForm.call(_this)) {
+                            if (canValidateForm(_this)) {
 
-                                clearIntervals.call(_this);
+                                clearIntervals(_this);
                                 _this.record=null;
-                                var isInvalidForm = !validateForm.call(_this);
+                                var isInvalidForm = !validateForm(_this);
 
                                 if (_this.formFiller.hasErrors() || isInvalidForm) {
-                                    printErrors.call(_this, isInvalidForm ? "Formulier validatie mislukt" : "");
+                                    printErrors(_this, isInvalidForm ? "Formulier validatie mislukt" : "");
                                 }
                                 else {
                                     setStatusMessage("Excel record succesvol ingevuld");
 
                                     // Deselect record checkbox
-                                    $("table.ExcelTable2007 > tbody > tr").eq(_this.recordsQueue[0]+2).find("input:checkbox").click();
+                                    $("table.ExcelTable2007 > tbody > tr").eq(_this.recordsQueue[0]).find("input:checkbox").click();
 
                                     // Submit form with ajax to prevent a redirect and
                                     // opening a new window for every advertisement.
-                                    submitFormWithAjax.call(_this);
+                                    submitFormWithAjax(_this);
                                 }
                             }
                         }
 
                         // Form was either submitted or cancelled. Continue with next.
-                        processNextInQueue.call(_this);
+                        processNextInQueue(_this);
                     }
                 }
-            }, this.checkIfRecordFromQueueIsDoneInterval);
+            }, _this.checkIfRecordFromQueueIsDoneInterval);
         }
 
-        function loadCurrentRecordSingleMode() {
+        function loadCurrentRecordSingleMode(_this) {
 
-                var _this = this;
                 var callback = null;
 
-                clearIntervals.call(this);
+                clearIntervals(_this);
 
                 callback = function() {
-                    singleModeCallback.call(_this);
+                    singleModeCallback(_this);
                 }
 
-                if (this.record !== null) {
-                    this.formFiller.fillForm(this.contentWindow, this.record, callback);
+                if (_this.record !== null) {
+                    _this.formFiller.fillForm(_this.contentWindow, _this.record, callback);
                 }
         }
 
-        function singleModeCallback() {
+        function singleModeCallback(_this) {
 
-            var _this = this;
             // Check if eventHandler.waitForConditionAndExecute() is active
-            this.checkIfRecordReady = setInterval(function() {
+            _this.checkIfRecordReady = setInterval(function() {
 
                 if (_this.formFiller.isActive()===false) {
 
                     clearInterval(_this.checkIfRecordReady);
 
                     if (_this.formFiller.hasErrors()) {
-                        printErrors.call(_this);
+                        printErrors(_this);
                     }
                     else {
                         if (_this.formFiller.inFinalForm()===true) {
@@ -372,12 +370,12 @@ var HTMLTableHandler = (function() {
                     }
                 }
 
-            }, this.checkIfRecordReadyInterval);
+            }, _this.checkIfRecordReadyInterval);
         }
 
-        function canValidateForm() {
+        function canValidateForm(_this) {
             try {
-                var childViews = this.contentWindow.AURORA.Pages.syi.childViews;
+                var childViews = _this.contentWindow.AURORA.Pages.syi.childViews;
 
                 if (typeof childViews.descriptionEditor._initValidation === 'undefined' || 
                     typeof childViews.form.beforeSubmit === 'undefined' ||
@@ -393,18 +391,17 @@ var HTMLTableHandler = (function() {
             return true;
         }
 
-        function validateForm() {
-                this.contentWindow.AURORA.Pages.syi.childViews.form.beforeSubmit();
-                if (!this.contentWindow.AURORA.Pages.syi.childViews.form.noErrorsFound()) {
+        function validateForm(_this) {
+                _this.contentWindow.AURORA.Pages.syi.childViews.form.beforeSubmit();
+                if (!_this.contentWindow.AURORA.Pages.syi.childViews.form.noErrorsFound()) {
                     return false;
                 }
                 return true;
         }
 
-	function buildExcelHtmlTable() {
+	function buildExcelHtmlTable(_this) {
 
-                var _this = this;
-		var record = this.recordReader.readRecord(0);
+		var record = _this.recordReader.readRecord(0);
 		setMessage("Aantal records: "+(parseInt(record.nrofrows)));
 
 		var i = 0;
@@ -413,7 +410,7 @@ var HTMLTableHandler = (function() {
 			var category = "";
 			var title = "";
 
-			record = this.recordReader.readRecord(i);
+			record = _this.recordReader.readRecord(i);
 
 			if (typeof record.category2 !== 'undefined')
 				category = record.category2;
@@ -439,21 +436,20 @@ var HTMLTableHandler = (function() {
 		$("input#submitAllCheckedButton").click(function() {
                         // If user clicked before refreshPlaceAdsButtonInterval() fired
                         if (!CookieHandler.isUserLoggedIn()) {
-                            refreshPlaceAdsButton.call(_this);
+                            refreshPlaceAdsButton(_this);
                             return;
                         }
                         clearFormFillerErrors();
 			_this.recordsQueue=[];
-			$("input[type='checkbox'].selectable:checked").each(function(ix, element) {
-                                var id = $(element).parent().parent().prop("id");
-				/* Strip 'rec-' off */
-				var rowToClickOn = parseInt(id.substring(4,id.length));
+			$("input[type='checkbox'].selectable:checked").each(function(ix, checkboxElement) {
+				var rowToClickOn = getRowToClickOnFromCheckbox(checkboxElement);
 				_this.recordsQueue.push(rowToClickOn);
 			});
                         _this.totalNrOfAdsPlaced=0;
                         _this.totalNrOfRecordsInQueue=_this.recordsQueue.length;
                         $("div#statusReport").hide();
-                        processRecordsQueue.call(_this, _this.recordsQueue);
+			if (_this.recordsQueue.length>0)
+				processRecordsQueue(_this);
 		});
 
 		$("#checkAll").click(function(ix, inputElement) {
@@ -463,18 +459,18 @@ var HTMLTableHandler = (function() {
 				return !val;
 			});
 			_this.nrOfCheckedRecords = count;
-                        refreshPlaceAdsButton.call(_this);
+                        refreshPlaceAdsButton(_this);
 		});
 
 		$("input[type='checkbox'].selectable").change(function() {
 			if ($(this).is(":checked")) ++_this.nrOfCheckedRecords;
 			else --_this.nrOfCheckedRecords;
-                        refreshPlaceAdsButton.call(_this);
+                        refreshPlaceAdsButton(_this);
 		});
 
                 // Check if logged in every 2 seconds and enable/disable place ads button.
-                this.refreshPlaceAdsButtonInterval = setInterval(function() {
-                    refreshPlaceAdsButton.call(_this);
+                _this.refreshPlaceAdsButtonInterval = setInterval(function() {
+                    refreshPlaceAdsButton(_this);
                 }, 2000);
 	}
 
@@ -484,39 +480,43 @@ var HTMLTableHandler = (function() {
 		element.dispatchEvent(evt);
     	}
 
-        function processNextInQueue() {
-                this.recordsQueue.shift();
+        function processNextInQueue(_this) {
+                _this.recordsQueue.shift();
 
-                if (this.recordsQueue.length>0) {
-                    processRecordsQueue.call(this);
+                if (_this.recordsQueue.length>0) {
+                    processRecordsQueue(_this);
                 }
                 else {
-                    printResult.call(this);
+                    printResult(_this);
                 }
 
         }
 
-        function clearIntervals() {
-		this.formFiller.clearAllIntervals();
-                clearInterval(this.checkIfRecordFromQueueIsDone); // multiModeCallback
-                clearInterval(this.checkIfRecordReady); // singleModeCallback
+        function clearIntervals(_this) {
+		_this.formFiller.clearAllIntervals();
+                clearInterval(_this.checkIfRecordFromQueueIsDone); // multiModeCallback
+                clearInterval(_this.checkIfRecordReady); // singleModeCallback
         }
 
-        function addClassErrorToRow(rowNr) {
+        function addClassErrorToRow(_this) {
             removeClassActiveFromColumns();
-            rowNr+=2; // Skip row with Excel column headers (A, B) and row with file column headers
-            $("table.ExcelTable2007 > tbody > tr").eq(rowNr).addClass('error');
+            $(_this.currentTableRow).addClass('error');
         }
 
-        function removeClassErrorFromRow(rowNr) {
-            rowNr+=2; // Skip row with Excel column headers (A, B) and row with file column headers
-            $("table.ExcelTable2007 > tbody > tr").eq(rowNr).removeClass('error');
+        function removeClassErrorFromRow(_this) {
+            $(_this.currentTableRow).removeClass('error');
         }
 
-	function processRecordsQueue() {
+	function processRecordsQueue(_this) {
                 // Call onClickRecord() with table row containing current record from queue
-                var element = $("table.ExcelTable2007 > tbody > tr").eq(this.recordsQueue[0]+2).find("td:eq(2)")[0];
-                this.onClickRecord.call(this, element, true);
+                var element = $("table.ExcelTable2007 > tbody > tr").eq(_this.recordsQueue[0]).find("td:eq(2)")[0];
+                _this.onClickRecord.call(_this, element, true);
+	}
+
+	function getRowToClickOnFromCheckbox(checkboxElement) {
+            var tableRowElement = $(checkboxElement).parent().parent()[0];
+	    var rowToClickOn = $("table.ExcelTable2007 > tbody > tr").index(tableRowElement);
+	    return rowToClickOn;
 	}
 
         return HTMLTableHandler;

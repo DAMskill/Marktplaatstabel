@@ -23,8 +23,7 @@ SET THISDIR=%~dp0
 
 echo.
 echo Marktplaatstabel
-echo ================
-echo.
+echo.^=^=^=^=^=^=^=^=^=^=^=^=^=^=^=^=
 
 SET NODEJSEXEC=node.exe
 
