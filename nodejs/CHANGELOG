@@ -1,3 +1,8 @@
+02-jan-2015
+   Version 1.4.2
+	- Added support for XML feeds supplied as local files
+	- Various bugfixes
+
 24-dec-2014
    Version 1.4.1
 	- Added support for Excel XML files

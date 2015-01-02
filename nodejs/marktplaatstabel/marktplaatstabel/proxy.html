@@ -26,6 +26,10 @@
         }
         else {
             var recordReader = new ExcelReader(path);
+            if (recordReader.getErrors().length>0) {
+                // Treat as XML feed
+		recordReader = new XmlReader(path);
+	    }
         }
 
         tableHandler = new HTMLTableHandler(recordReader);

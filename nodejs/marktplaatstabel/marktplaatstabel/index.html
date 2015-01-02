@@ -14,10 +14,10 @@
     <script type='text/javascript' src='http://localhost/marktplaatstabel/js/excel-2007-hover-css.js'></script>
     <script>
 
-        $(document).ready(function() {
+        $(function() {
 
-            var documentURL = $('<a>', { href: document.URL} )[0];
             var pathToOpen = "filemanager.html";
+            var documentURL = $('<a>', { href: document.URL} )[0];
 
             var path = documentURL.search.replace("?", "").replace(/=.*/,"").replace(/\+/g,"");
 

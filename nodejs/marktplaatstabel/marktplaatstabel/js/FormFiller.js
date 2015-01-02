@@ -100,6 +100,7 @@ var FormFiller = (function() {
         this.record = record;
         this.targetWindow = targetWindow; // Window with the form to fill
         if (typeof targetWindow.$==='undefined') return; // jQuery not ready
+        if (typeof targetWindow.document==='undefined') return; // Document not ready
         this.windowUrlOnStartFillForm = targetWindow.document.URL;
         this.$ = targetWindow.$; // jQuery shortcut ($ variable) of targetWindow
 

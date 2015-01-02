@@ -142,15 +142,16 @@ div#excelFileHeader {
 	clear:both;
 }
 
-iframe#responsiveFilemanager {
+iframe#filemanager {
 	margin-top:2px;
-	width:1300px;
-	height:750px;
+	width:100%;
+	border:0;
+	height:500px;
 }
 
 #maintitle {
 	font-weight:bold;
-	font-size:18px;
+	font-size:20px;
 	margin:20px 0 10px 0;
 }
 

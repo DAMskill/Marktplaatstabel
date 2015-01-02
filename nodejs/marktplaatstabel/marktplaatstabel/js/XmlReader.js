@@ -65,6 +65,9 @@ var XmlReader = (function() {
                         catch(error) {
                             _this.errors.push("Geen geldig XML document. Structuur kon niet worden ontleedt.");
                         }
+                    },
+                    error: function(error) {
+                            _this.errors.push("Geen geldig XML document");
                     }
             });
         }

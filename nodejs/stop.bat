@@ -24,20 +24,10 @@ SET THISDIR=%~dp0
 echo.
 echo Marktplaatstabel
 echo.^=^=^=^=^=^=^=^=^=^=^=^=^=^=^=^=
+echo.
 
 set THISDIR=%~dp0
-type "%THISDIR%\misc\exitHeader.txt" | "%THISDIR%\misc\nc.exe" localhost 80
-if errorlevel 1 (
-   echo.
-   echo Marktplaatstabel kon niet worden afgesloten
-   echo.
-   if  not "%1"=="-passive" pause
-   exit /b %errorlevel%
-) else (
-   echo.
-   echo Marktplaatstabel is gestopt
-   echo.
-   if  not "%1"=="-passive" pause
-   exit /b %errorlevel%
-)
 
+node "%THISDIR%/marktplaatstabel/exit.js"
+echo.
+if  not "%1"=="-passive" pause
