@@ -23,7 +23,7 @@ DestDir: {app}; Source: ..\*; Excludes: "*.iss, *.msi, *.log, *.swp, *.*~, \imag
 Source: "..\Installer\node-v0.10.33-x64.msi"; DestDir: "{tmp}"; Check: IsWin64;
 Source: "..\Installer\node-v0.10.33-x86.msi"; DestDir: "{tmp}"; Check: not IsWin64;
 Source: "..\Data files\Voorbeeldtabel.xlsm"; DestDir: {commondocs}\Marktplaatstabel;
-Source: "..\Data files\Voorbeeldtabel.xlsx"; DestDir: {commondocs}\Marktplaatstabel;
+Source: "..\Data files\Voorbeeldtabel.xls"; DestDir: {commondocs}\Marktplaatstabel;
 Source: "..\Data files\Voorbeeld.xml"; DestDir: {commondocs}\Marktplaatstabel;
 Source: "..\images\logo.jpg"; DestDir: {commondocs}\Marktplaatstabel\afbeeldingen;
 Source: "..\images\screenshot*.jpg"; DestDir: {commondocs}\Marktplaatstabel\afbeeldingen;

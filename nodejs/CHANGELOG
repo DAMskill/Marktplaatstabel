@@ -1,3 +1,11 @@
+05-jan-2015
+   Version 2.3.0
+	- Improved look and feel filebrowser
+	- Filebrowser Unix/Windows path separator bug fix
+        - Added support for new image uploader
+        - Disabled caching
+	- Safari bugfixes
+
 02-jan-2015
    Version 2.2.0
 	- Added support for XML feeds supplied as local files

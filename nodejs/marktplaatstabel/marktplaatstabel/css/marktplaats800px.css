@@ -91,9 +91,9 @@ h1.page-header {
 	margin:20px 20px 15px 20px;
 }
 
-div.syi-container {
+form#syi-form {
 	width: 770px;
-	margin-left: 20px;
+	margin-left: 10px;
 	border-top:none;
 }
 
@@ -108,10 +108,13 @@ div.category-selection-container {
 	border-top:none;
 }
 
-div.syi-container > div.section-content {
+form#syi-form div.section-content, form#syi-form div.box-content {
 	background-color: #fbf7ee;
 	margin:0 0 20px 0;
-	width: 690px;
+}
+
+.box-stacked+.box-stacked {
+        border-top: 1px solid #b1c4df;
 }
 
 #syi-price {

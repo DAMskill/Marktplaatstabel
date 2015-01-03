@@ -16,10 +16,10 @@
         var documentURL = $('<a>', { href: document.URL} )[0];
         var path = documentURL.search.replace("?", "").replace("=","/").replace(/\+/g,"");
         var isRemote = path.indexOf("remote") !== -1 ? true : false;
-        var filename = decodeURIComponent(path.replace(/.*file\//, ""));
+        var relativePath = decodeURIComponent(path.replace(/.*file\//, ""));
         var ext = getFileExtension(path);
 
-        $("#excelFileHeader b").text(filename);
+        $("#excelFileHeader b").text(relativePath);
 
         if (isRemote) {
             var recordReader = new XmlReader(path);

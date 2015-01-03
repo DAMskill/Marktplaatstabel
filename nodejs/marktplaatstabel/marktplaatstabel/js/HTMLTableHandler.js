@@ -29,8 +29,6 @@ var HTMLTableHandler = (function() {
                 setMessage(this.recordErrors.join("<br/>"));
             }
 
-            this.placeAddURI = "http://ssl.marktplaatstabel.services/syi/plaatsAdvertentie.html";
-            this.nginxPlaceAdURI = "/ajaxPlaatsAdvertentie.html";
             this.recordReader = recordReader;
             this.record = null;
 	    this.currentTableRow = null;
@@ -54,7 +52,9 @@ var HTMLTableHandler = (function() {
             this.checkIfRecordReady = null;
             this.checkIfRecordReadyInterval = 1000;
             this.loadCurrentRecordFunction = null;
-            this.contentWindow = null;
+
+            // Access to iframe with Marktplaats.nl
+            this.contentWindow = document.getElementById("myframe").contentWindow;
             this.formFiller = null; // FormFiller instance initialized in onClickRecord()
         }
 
@@ -66,10 +66,6 @@ var HTMLTableHandler = (function() {
         }
 
         HTMLTableHandler.prototype.loadCurrentRecord = function() {
-
-            // Access to iframe with Marktplaats.nl
-            this.contentWindow = document.getElementById("myframe").contentWindow;
-
             if (this.loadCurrentRecordFunction!==null)
                 this.loadCurrentRecordFunction(this);
         }
@@ -90,32 +86,13 @@ var HTMLTableHandler = (function() {
             setStatusMessage(statusMessage);
         }
 
-        function goToPlaceAddURL(_this) {
-            try {
-                if (_this.contentWindow.document.URL!==_this.placeAddURI) {
-                    _this.contentWindow.location = _this.placeAddURI;
-                    return true;
-                }
-            }
-            catch (error) {
-                // SecurityError (see https://html.spec.whatwg.org)
-                if (error.code===18) {
-                    alert("Toegangsfout, website wordt herladen. ("+error+")");
-                    location.reload();
-                }
-                return false;
-            }
-        }
-
 	HTMLTableHandler.prototype.onClickRecord = function(element, isProcessingMultipleRecords) {
 
-                // Check if on category selection page otherwise go there
-                if (goToPlaceAddURL(this)===false) return false;
-
-                if (this.eventHandler===null)
+               if (this.eventHandler===null)
                     this.eventHandler = new EventHandler();
 
-                this.formFiller = new FormFiller(this.eventHandler, recordStatusHandler);
+                // Only FormFiller should access contentWindow
+                this.formFiller = new FormFiller(this.contentWindow, this.eventHandler, recordStatusHandler);
 
 		this.currentTableRow = element.parentNode;
 		var link = element.parentNode;
@@ -146,13 +123,10 @@ var HTMLTableHandler = (function() {
 
                 removeClassErrorFromRow(this);
 
-                var backLink = $("#myframe").contents().find("a.backlink > span");
+                // Check if on category selection page otherwise go there.
+                // The onload of the iframe calls loadCurrentRecord() again.
 
-                if (backLink.length > 0) {
-                    // Onload iframe calls loadCurrentRecord()
-                    backLink.click();
-                }
-                else {
+                if (this.formFiller.goToPlaceAddURL()===false) {
                     this.loadCurrentRecord();
                 }
 	}
@@ -224,38 +198,6 @@ var HTMLTableHandler = (function() {
             document.location.hash="statusReport";
         }
 
-        function submitFormWithAjax(_this) {
-
-            var formWindow = document.getElementById("myframe").contentWindow;
-
-            // Get description from tinymce iframe and copy it to textarea#description of the form
-            var description = formWindow.$("iframe#description_ifr").contents().find("body#tinymce").html();
-            formWindow.$("textarea#description").html(description);
-
-            var form = formWindow.$("#syi-form");
-            // Serialize all form data to post.
-            var postData = form.serialize();
-
-            var _formFiller = _this.formFiller;
-
-            $.ajax(
-            {
-                url  : _this.nginxPlaceAdURI, // see also: constructor and nginx.conf
-                type : "POST",
-                data : postData,
-                async: false, // Don't start new form until successful submission
-                success:function(data, textStatus, jqXHR) 
-                {
-                    ++_this.totalNrOfAdsPlaced;
-                },
-                // Form submission might fail due to network or other errors.
-                error: function(jqXHR, textStatus, errorThrown) 
-                {
-                    printErrors(_this, "Advertentie plaatsen mislukt");
-                }
-            });
-        }
-
         function loadCurrentRecordMultiMode(_this) {
 
             var callback = null;
@@ -268,16 +210,7 @@ var HTMLTableHandler = (function() {
 
             if (_this.record !== null) {
 
-                // Marktplaats.nl JS code replaces the value of each input element
-                // with the value of attribute data-placeholder if it exists. This
-                // simulates the HTML5 placeholder attribute. Clear these values
-                // before filling out the form to prevent submitting the help text
-                // of these input fields (e.g. microTipText contains the text
-                // 'Bijvoorbeeld AANBIEDING' as the placeholder).
-                _this.contentWindow.$("#syi-form :input[data-placeholder]").val('');
-
-                // Markplaats.nl is inside an iFrame (contentWindow).
-                _this.formFiller.fillForm(_this.contentWindow, _this.record, callback);
+                _this.formFiller.fillForm(_this.record, callback);
             }
         }
 
@@ -306,11 +239,11 @@ var HTMLTableHandler = (function() {
                         }
                         else {
                            
-                            if (canValidateForm(_this)) {
+                            if (_this.formFiller.canValidateForm(_this)) {
 
                                 clearIntervals(_this);
                                 _this.record=null;
-                                var isInvalidForm = !validateForm(_this);
+                                var isInvalidForm = !_this.formFiller.validateForm(_this);
 
                                 if (_this.formFiller.hasErrors() || isInvalidForm) {
                                     printErrors(_this, isInvalidForm ? "Formulier validatie mislukt" : "");
@@ -321,9 +254,10 @@ var HTMLTableHandler = (function() {
                                     // Deselect record checkbox
                                     $("table.ExcelTable2007 > tbody > tr").eq(_this.recordsQueue[0]).find("input:checkbox").click();
 
-                                    // Submit form with ajax to prevent a redirect and
-                                    // opening a new window for every advertisement.
-                                    submitFormWithAjax(_this);
+                                    // Submit form with ajax to prevent loading every new advertisement.
+                                    var callOnSuccess = function() { ++_this.totalNrOfAdsPlaced; };
+                                    var callOnFailure = function() { printErrors(_this, "Advertentie plaatsen mislukt"); };
+                                    _this.formFiller.submitFormWithAjax(callOnSuccess, callOnFailure);
                                 }
                             }
                         }
@@ -346,7 +280,7 @@ var HTMLTableHandler = (function() {
                 }
 
                 if (_this.record !== null) {
-                    _this.formFiller.fillForm(_this.contentWindow, _this.record, callback);
+                    _this.formFiller.fillForm(_this.record, callback, _this);
                 }
         }
 
@@ -371,32 +305,6 @@ var HTMLTableHandler = (function() {
                 }
 
             }, _this.checkIfRecordReadyInterval);
-        }
-
-        function canValidateForm(_this) {
-            try {
-                var childViews = _this.contentWindow.AURORA.Pages.syi.childViews;
-
-                if (typeof childViews.descriptionEditor._initValidation === 'undefined' || 
-                    typeof childViews.form.beforeSubmit === 'undefined' ||
-                    typeof childViews.descriptionEditor.rteInstance === 'undefined'
-                    )
-                {
-                    return false;
-                }
-            }
-            catch(error) {
-                return false;
-            }
-            return true;
-        }
-
-        function validateForm(_this) {
-                _this.contentWindow.AURORA.Pages.syi.childViews.form.beforeSubmit();
-                if (!_this.contentWindow.AURORA.Pages.syi.childViews.form.noErrorsFound()) {
-                    return false;
-                }
-                return true;
         }
 
 	function buildExcelHtmlTable(_this) {

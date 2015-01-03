@@ -48,23 +48,25 @@ var FormFiller = (function() {
 
     "use strict";
 
-    function FormFiller(eventHandler, recordStatusHandler) {
+    function FormFiller(targetWindow, eventHandler, recordStatusHandler) {
 
         this.record = null;
         // Target window is set in FormFiller.fillForm()
-        this.targetWindow = null;
+        this.targetWindow = targetWindow; // Window with the form to fill
 
         this.eventHandler = eventHandler;
         this.recordStatusHandler = recordStatusHandler;
         this.errors = [];
         this.postPictureErrors = [];
 
+        this.nginxPlaceAdURI = "/ajaxPlaatsAdvertentie.html";
+        this.placeAddURI = "http://ssl.marktplaatstabel.services/syi/plaatsAdvertentie.html";
+
         this.mutationCriteria = {
             childList: true,
             characterData: true,
             subtree: true
         }
-        this.count =0;
     }
 
     FormFiller.prototype.isActive = function() {
@@ -95,22 +97,31 @@ var FormFiller = (function() {
         return false;
     }
 
-    FormFiller.prototype.fillForm = function(targetWindow, record, callbackWhenReady) {
+    FormFiller.prototype.fillForm = function(record, callbackWhenReady) {
 
-        this.record = record;
-        this.targetWindow = targetWindow; // Window with the form to fill
-        if (typeof targetWindow.$==='undefined') return; // jQuery not ready
-        if (typeof targetWindow.document==='undefined') return; // Document not ready
-        this.windowUrlOnStartFillForm = targetWindow.document.URL;
-        this.$ = targetWindow.$; // jQuery shortcut ($ variable) of targetWindow
+        var _this = this;
+        var condition = function() {
+            return (typeof _this.targetWindow.$!=='undefined' && typeof _this.targetWindow.document!=='undefined');
+        } 
+        var action = function() { realFillForm(_this, record, callbackWhenReady); }
+
+        // Wait for jQuery after loading the window (necessary for Safari)
+        waitForConditionAndExecute.call(_this, "wachten op formulier", condition, action, 10);
+    }
+
+    function realFillForm(_this, record, callbackWhenReady) {
+
+        _this.record = record;
+        _this.windowUrlOnStartFillForm = _this.targetWindow.document.URL;
+        _this.$ = _this.targetWindow.$; // jQuery shortcut ($ variable) of targetWindow
 
         // Clear errors
-        this.errors = [];
-        this.postPictureErrors = [];
-        this.eventHandler.clearErrors();
+        _this.errors = [];
+        _this.postPictureErrors = [];
+        _this.eventHandler.clearErrors();
 
         // Add a new jQuery Sizzle pseudo selector
-        this.$.find.selectors.pseudos.Contains = function(a, i, m) {
+        _this.$.find.selectors.pseudos.Contains = function(a, i, m) {
             // case-insensitive
             return (a.textContent || a.innerText || "").toUpperCase().indexOf(m[3].toUpperCase()) >= 0;
         };
@@ -118,7 +129,6 @@ var FormFiller = (function() {
         /* Walk through rules per URL, and pass record and rule object to the
          * handler.
          */
-        var _this = this;
         $.each(RulesWithHandlerPerURL, function(URLregexp, formFillRuleGroup) {
             if (_this.targetWindow.document.URL.match(URLregexp) !== null) {
                 $.each(formFillRuleGroup, function(ix, rule) {
@@ -128,6 +138,100 @@ var FormFiller = (function() {
         });
         if (typeof callbackWhenReady==="function")
             callbackWhenReady();
+    }
+
+    FormFiller.prototype.submitFormWithAjax = function(callOnSuccess, callOnFailure) {
+
+        // Get description from tinymce iframe and copy it to textarea#description of the form
+        var description = this.targetWindow.$("iframe#description_ifr").contents().find("body#tinymce").html();
+        this.targetWindow.$("textarea#description").html(description);
+
+        var form = this.targetWindow.$("#syi-form");
+
+        // Marktplaats.nl JS code replaces the value of each input element
+        // with the value of attribute data-placeholder if it exists. This
+        // simulates the HTML5 placeholder attribute. Clear these values
+        // before filling out the form to prevent submitting the help text
+        // of these input fields (e.g. microTipText contains the text
+        // 'Bijvoorbeeld AANBIEDING' as the placeholder).
+        form.find(":input[data-placeholder]").val('');
+ 
+        // Serialize all form data to post.
+        var postData = form.serialize();
+
+        $.ajax(
+        {
+            url  : this.nginxPlaceAdURI, // see also: constructor and nginx.conf
+            type : "POST",
+            data : postData,
+            async: false, // Don't start new form until successful submission
+            success:function(data, textStatus, jqXHR) 
+            {
+		callOnSuccess();
+            },
+            // Form submission might fail due to network or other errors.
+            error: function(jqXHR, textStatus, errorThrown) 
+            {
+		callOnFailure();
+            }
+        });
+    }
+
+    FormFiller.prototype.goToPlaceAddURL = function() {
+        try {
+            if (this.targetWindow.document.URL!==this.placeAddURI) {
+	    	this.targetWindow.location = this.placeAddURI;
+                return true;
+            }
+            return false;
+        }
+        catch (error) {
+            // SecurityError (see https://html.spec.whatwg.org)
+            if (error.code===18) {
+                alert("Toegangsfout, website wordt herladen. ("+error+")");
+                location.reload();
+            }
+            return false;
+        }
+    }
+
+    FormFiller.prototype.canValidateForm = function() {
+        try {
+            var childViews = getAuroraChildViews(this);
+            return isChildViewsReadyForFormSubmission(childViews);
+        }
+        catch(error) {
+            return false;
+        }
+    }
+
+    FormFiller.prototype.validateForm = function() {
+        try {
+            var childViews = getAuroraChildViews(this);
+            childViews.form.beforeSubmit();
+            return childViews.form.noErrorsFound();
+        }
+        catch(error) {
+            return false;
+        }
+    }
+
+    function getAuroraChildViews(_this) {
+        if (typeof(_this.targetWindow.AURORA.Pages.syi)!=='undefined')
+            return _this.targetWindow.AURORA.Pages.syi.childViews;
+        else 
+            return _this.targetWindow.AURORA.Pages.Syi.childViews;
+    }
+
+    function isChildViewsReadyForFormSubmission(childViews) {
+        if (typeof childViews.descriptionEditor._initValidation === 'undefined' || 
+            typeof childViews.form.beforeSubmit === 'undefined' ||
+            typeof childViews.descriptionEditor.rteInstance === 'undefined'
+            )
+        {
+            return false;
+        }
+        return true;
     }
 
     function waitForConditionAndExecute(uniqueIDString, condition, action, maxRetries) {
@@ -381,8 +485,11 @@ var FormFiller = (function() {
                     postPictureErrorHandler.call(_this, data.error, uniqueIDString);
                 }
                 else {
+                    // Ensure image container is available
                     var condition = function() {
-                        if (_this.$("div.uploader-container.empty:first > input[name='images.ids']").length > 0) return true;
+                        var imgUploadContainer = _this.$("div.uploaders div.uploader-container").eq(ix);
+                        var inputImagesIds = imgUploadContainer.find("> input[name='images.ids']");
+                        if (inputImagesIds.length > 0) return true;
                     };
                     var action = function() {
                         /* Pass index too, the first picture could return later than the second */
@@ -427,6 +534,15 @@ var FormFiller = (function() {
         imgUploadContainer.find("img.image-upload-logo").hide();
         imgUploadContainer.find("span.uploader-label").hide();
         imgUploadContainer.removeClass("empty").addClass("complete");
+
+        // Add new image upload container (support for new type of responsive upload containers).
+        try {
+            var eventData = {};
+            eventData.isImageBeingReplaced = false;
+            this.targetWindow.AURORA.Pages.Syi.childViews.uploaders.newImageUploader(eventData);
+        }
+        catch(error) {
+        }
     }
 
     function pictureHandler(rule, record) {
@@ -504,11 +620,10 @@ var FormFiller = (function() {
                 observer.observe(rule.target.call(_this), _this.mutationCriteria);
             }
             /* 
-             * Sometimes category 1 is filled before mutation observer is observing.
-             * The category will then be selected by the action function of the rule.
+             * If a category list is (pre)filled before mutation observer is observing,
+             * then the category will be selected by the action function of the rule.
              */
             if ("action" in rule !== false) {
-                _this.count++;
                 if (typeof rule.getUniqueSlotID=== 'function') {
                     _this.eventHandler.reserveSlot(rule.getUniqueSlotID(name));
                     rule.action.call(_this, record[name], rule.getUniqueSlotID(name), rule.maxRetries);

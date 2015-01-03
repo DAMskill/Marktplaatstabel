@@ -20,7 +20,7 @@ var settings = {
     sslProxyURL  : "http://ssl.marktplaatstabel.services",
     proxyTarget  : "www.marktplaats.nl",
     listenPort   : 80,
-    publicFolder : 'C:\\Users\\Public\\Documents\\Marktplaatstabel',
+    publicFolder : '/Users/Shared/Marktplaatstabel',
     appRootPath  : '/marktplaatstabel'
 };
 
@@ -42,6 +42,13 @@ marktplaatsProxy.on('proxyReq', function(proxyReq, req, res, options) { filterRe
 marktplaatsProxy.on('proxyRes', function(proxyRes, req, res, options) { filterResponseHeader(proxyRes); });
 
 function filterResponseHeader(proxyRes) {
+
+    proxyRes.headers["Access-Control-Allow-Origin"] = "*";
+
+    // Disable cache. RFC 2616/5861/7234
+    proxyRes.headers["Cache-Control"] = "max-age=0";
+    proxyRes.headers["Pragma"] = "no-cache";
+    proxyRes.headers["Expires"] = "0";
 
     // Redirects to localhost
     if (typeof proxyRes.headers.location !== 'undefined') {
@@ -86,8 +93,6 @@ function filterRequestHeader(proxyReq) {
     proxyReq.setHeader("Accept-Encoding","");
     // Set Referer to original host
     proxyReq.setHeader("Referer", "http://www.marktplaats.nl");
-    // Set generic User-Agent
-    proxyReq.setHeader("User-Agent", "Mozilla/5.0 (Windows NT 6.3; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/39.0.2171.71 Safari/537.36");
 }
 
 // Refreshing the page many times in fast succession kills the proxy server with a 'socket hang up' error
@@ -232,8 +237,8 @@ var transformerFunction = function(httpMessageBody, req) {
         '(function sitespeedHandler\\(\\) {)' : '$1 return;',
 
         // Add HTML button to TinyMCE editor
-        "theme:'advanced',theme_advanced_buttons1:'bold,italic,underline,bullist'" : 
-            "theme: 'advanced',theme_advanced_buttons1: 'bold,italic,underline,bullist,code'",
+        "theme_advanced_buttons1:'bold,italic,underline'" : 
+            "theme_advanced_buttons1:'bold,italic,underline,code'",
 
 	// Insert new css file
         '<\/head>' : '<link href="http:\/\/localhost\/marktplaatstabel\/css\/marktplaats800px.css" rel="stylesheet" type="text\/css" media="screen"><\/link><\/head>',
@@ -258,56 +263,45 @@ app.get('/getdirlist', function(req, res, next) {
      if (query) currentDir = path.join(settings.publicFolder, query);
 
      fs.readdir(currentDir, function (err, files) {
-         if (err) {
-            throw err;
+          if (err) {
+              console.log(err);
           }
-          var data = [];
+	  else {
+	          var foldersToSort = [];
+		  var filesToSort = [];
 
-          files.forEach(function (file, index) {
+		  files.forEach(function (file, index) {
 
-                var fullPath = path.join(currentDir, file);
-                var relativePath = path.join(query, file);
-                var indexOfLastBackSlash = query.lastIndexOf('\\');
-                var previousFolder = query.substring(0, indexOfLastBackSlash);
+			var fullPath = path.join(currentDir, file);
+			var relativePath = path.join(query, file);
+			try {
+			    var isDirectory = fs.statSync(fullPath).isDirectory();
+			    if (isDirectory) {
+				  foldersToSort.push({ Name : file, IsDirectory: true, Path : relativePath });
+			    } else {
+				  var ext = path.extname(file);
+				  var prefix = settings.sslProxyURL + settings.appRootPath;
+				  filesToSort.push({ Name : file, Ext : ext, IsDirectory: false, Path : prefix + "/?file=" + relativePath });
+			    }
 
-                try {
-                    if (index===0 && query) {
-                          data.push({ Name: "Terug", IsDirectory: true, IsBackButton: true, Path: previousFolder });
-                    }
-                    var isDirectory = fs.statSync(fullPath).isDirectory();
-                    if (isDirectory) {
-                          data.push({ Name : file, IsDirectory: true, Path : relativePath });
-                    } else {
-                          var ext = path.extname(file);
-                          var prefix = settings.sslProxyURL + settings.appRootPath;
-                          data.push({ Name : file, Ext : ext, IsDirectory: false, Path : prefix + "/?file=" + relativePath });
-                    }
+			} catch(e) {
+			    switch (e.code) {
+				case 'EPERM':
+				    console.log("Permission denied requesting file status on: "+fullPath);
+				    break;
+			    }
+			}
+		  });
 
-                } catch(e) {
-                    switch (e.code) {
-                        case 'EPERM':
-                            console.log("Permission denied requesting file status on: "+fullPath);
-                            break;
-                    }
-                }
-          });
+		  var filesSorted = lodash.sortBy(filesToSort, function(f) { return f.Name });
+		  var foldersSorted = lodash.sortBy(foldersToSort, function(f) { return f.Name });
 
-          data = data.sort(function(a,b) {
-              if (a.IsDirectory && !b.IsDirectory) return -1;
-              if (!a.IsDirectory && b.IsDirectory) return 1;
-
-              if (a.name > b.name) {
-                    return 1;
-              }
-              if (a.name < b.name) {
-                    return -1;
-              }
-              return 0;
-          });
-
-          //data = lodash.sortBy(data, function(f) { return f.Name });
-          res.json(data);
-      });
+                  var data = {};
+		  data.folderContents = foldersSorted.concat(filesSorted);
+                  data.queryPath = query!=='' ? path.sep+path.normalize(query) : '';
+		  res.json(data);
+          }
+     });
 });
 
 app.get('/filebrowser', function(req, res) { 
@@ -349,6 +343,7 @@ app.post('/ajaxPlaatsAdvertentie.html', function(req, res) {
     placeAdvertisementProxy.web(req, res, { target: target});
 });
 
+app.use(express.static("/favicon.ico")); // App public directory
 app.use(express.static(__dirname)); // App public directory
 
 // Transformer-proxy; filter js, json and html (test if request url ends in .js, .html, .json or /, not followed by a \w)
@@ -417,6 +412,10 @@ httpServer.on('error', function (err, req, res) {
     switch(err.code) {
         case 'EADDRINUSE':
              console.log("Error: Can't start server. Port " + settings.listenPort + " is already in use.");
+            break;
+        // RFC 1700
+        case 'EACCES':
+             console.log("Error: Permission denied to bind to port " + settings.listenPort + ". Ports below 1024 are reserved for privileged processes (e.g. root).");
             break;
         default:
             console.log("Unhandled exception occurred, stack trace:\n");

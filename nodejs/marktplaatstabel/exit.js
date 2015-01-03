@@ -17,13 +17,14 @@ var newRequest = http.request(options, function(res) {
 
       res.on('end', function () {
           //console.log(dataBuffer.toString());
+          console.log("Marktplaatstabel is afgesloten");
       });
 });
 
 newRequest.on('error', function(error) {
     switch(error.code) {
         case 'ECONNRESET':
-            console.log("Marktplaatstabel is afgesloten");
+	    // successful shutdown
             break;
         case 'ECONNREFUSED':
             console.log("Marktplaatstabel kon niet worden afgesloten");
