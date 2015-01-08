@@ -1,0 +1,11 @@
+#!/bin/bash
+export PATH=$PATH:/usr/bin:/bin:/usr/sbin:/sbin:/usr/local/bin
+chmod o+x /Applications/Marktplaatstabel.app/Contents/MacOS/Marktplaatstabel 2>/tmp/err
+
+if ! grep -iq ssl.marktplaatstabel.services /etc/hosts; then
+    echo "127.0.0.1\tssl.marktplaatstabel.services" >> /etc/hosts
+fi
+
+if ! grep -iq www.marktplaatstabel.services /etc/hosts; then
+    echo "127.0.0.1\twww.marktplaatstabel.services" >> /etc/hosts
+fi

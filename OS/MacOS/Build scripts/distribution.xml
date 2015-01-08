@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<installer-gui-script minSpecVersion="1">
+    <title>Marktplaatstabel 2.4.0</title>
+    <background file="background2.jpg" mime-type="image/jpg" scaling="tofit" alignment="center"/>
+    <pkg-ref id="nl.marktplaatstabel"/>
+    <options customize="never" require-scripts="false"/>
+    <choices-outline>
+        <line choice="default">
+            <line choice="nl.marktplaatstabel"/>
+        </line>
+    </choices-outline>
+    <choice id="default"/>
+    <choice id="nl.marktplaatstabel" visible="false">
+        <pkg-ref id="nl.marktplaatstabel"/>
+    </choice>
+    <pkg-ref id="nl.marktplaatstabel" version="2.4.0" onConclusion="none">Marktplaatstabel-2.4.0.pkg</pkg-ref>
+</installer-gui-script>
