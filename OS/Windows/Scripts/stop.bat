@@ -28,6 +28,6 @@ echo.
 
 set THISDIR=%~dp0
 
-node "%THISDIR%/marktplaatstabel/exit.js"
+node "%THISDIR%\..\exit.js"
 echo.
 if  not "%1"=="-passive" pause

@@ -1,6 +1,11 @@
+11-jan-2015
+   Version 2.4.1
+        - Added Node.js to OS X preinstall script
+        - Adjusted Windows script paths to new folder structure
+
 08-jan-2015
    Version 2.4.0
-        - Added support for Mac OS installation packages
+        - Added support for OS X installation packages
         - Reorganized files and folders
 
 05-jan-2015

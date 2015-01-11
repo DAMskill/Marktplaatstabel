@@ -38,11 +38,11 @@ FOR /L %%i IN (1,1,10) DO (
   SET nodejsIsRunning=!result!
 
   IF !nodejsIsRunning! EQU 0 (
-        "%THISDIR%/../bin/nircmdc.exe exec hide" node "%THISDIR%/../../marktplaatstabel/marktplaatstabel.js"
+        "%THISDIR%\RunHiddenConsole.exe" node "%THISDIR%\..\marktplaatstabel.js"
   )
 
   REM Wait 1/2 a second
-  "%THISDIR%/misc/nircmdc" wait 500
+  "%THISDIR%\nircmdc" wait 500
 
   IF !nodejsIsRunning! EQU 1 (
     timeout /t 1 > nul && <NUL SET /p=.

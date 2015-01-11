@@ -1,0 +1,36 @@
+#!/bin/bash
+#
+# Marktplaatstabel preinstall
+# ---------------------------
+# Parameters received from installer:
+#     $0   Full path to script
+#     $1   Package path
+#     $2   Target location
+#     $3   Target volume
+#
+
+export PATH=$PATH:/usr/bin:/bin:/usr/sbin:/sbin:/usr/local/bin
+
+isNodeJSInstallationRequired=true
+scriptPath=$(dirname $0)
+
+# Check if Node.js is installed
+command -v node >/dev/null 2>&1
+
+# If node was found
+if [ $? -eq 0 ]; then
+
+    version=$(node --version) # e.g. v0.10.35
+    version=${version/v/} # remove 'v' from version
+
+    v=( ${version//./ } ) # replace points, split into array
+
+    # If version of Node.js is bigger than 0.10 assume
+    # no installation is required.
+    if ! ([ "${v[0]}" -eq "0" ] && [ "${v[1]}" -lt "10" ]); then
+        isNodeJSInstallationRequired=false
+    fi
+fi
+
+# Install Node.js v0.10.35 if required
+test "$isNodeJSInstallationRequired" = true && installer -pkg "$scriptPath/Node.js/node-v0.10.35.pkg" -target /

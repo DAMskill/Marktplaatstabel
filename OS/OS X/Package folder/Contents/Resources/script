@@ -1,5 +1,5 @@
 #!/bin/bash
 export PATH=$PATH:/usr/bin:/bin:/usr/sbin:/sbin:/usr/local/bin
 node ./www/marktplaatstabel.js 2>&1 | tee log &
-sleep 5
+sleep 3
 open "http://ssl.marktplaatstabel.services/marktplaatstabel"
