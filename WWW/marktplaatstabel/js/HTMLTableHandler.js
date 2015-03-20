@@ -249,7 +249,7 @@ var HTMLTableHandler = (function() {
                                     printErrors(_this, isInvalidForm ? "Formulier validatie mislukt" : "");
                                 }
                                 else {
-                                    setStatusMessage("Excel record succesvol ingevuld");
+                                    setStatusMessage("Record succesvol ingevuld");
 
                                     // Deselect record checkbox
                                     $("table.ExcelTable2007 > tbody > tr").eq(_this.recordsQueue[0]).find("input:checkbox").click();

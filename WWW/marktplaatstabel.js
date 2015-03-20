@@ -15,7 +15,7 @@ var PhotoUploader = require('photo-uploader');
 
 var settings = {
     title        : "Marktplaatstabel",
-    version      : "2.4.0",
+    version      : "2.4.2",
     proxyURL     : "http://www..marktplaatstabel.services",
     sslProxyURL  : "http://ssl.marktplaatstabel.services",
     proxyTarget  : "www.marktplaats.nl",

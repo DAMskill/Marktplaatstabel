@@ -34,3 +34,5 @@ fi
 
 # Install Node.js v0.10.35 if required
 test "$isNodeJSInstallationRequired" = true && installer -pkg "$scriptPath/Node.js/node-v0.10.35.pkg" -target /
+
+exit 0
