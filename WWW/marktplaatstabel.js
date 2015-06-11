@@ -20,7 +20,8 @@ var settings = {
     sslProxyURL  : "http://ssl.marktplaatstabel.services",
     proxyTarget  : "www.marktplaats.nl",
     listenPort   : 80,
-    publicFolder : '/Users/Shared/Marktplaatstabel',
+    //publicFolder : '/Users/Shared/Marktplaatstabel',
+    publicFolder : 'C:/Users/Public/DocumentsMarktplaatstabel',
     appRootPath  : '/marktplaatstabel'
 };
 

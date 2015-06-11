@@ -122,7 +122,7 @@ var FormFiller = (function() {
 
         // Add a new jQuery Sizzle pseudo selector
         _this.$.find.selectors.pseudos.Contains = function(a, i, m) {
-            // case-insensitive
+        // case-insensitive
             return (a.textContent || a.innerText || "").toUpperCase().indexOf(m[3].toUpperCase()) >= 0;
         };
 
@@ -307,7 +307,7 @@ var FormFiller = (function() {
 
                 var _this = this;
                 var action = function() {
-                    var dropdownLabel = _this.$("label.form-label:Contains('" + item[0] + "')");
+                    var dropdownLabel = _this.$(".form-label:Contains('" + item[0] + "')");
                     var targetUL = dropdownLabel.parent().find("ul.item-frame");
                     var targetLI = targetUL.find("li").filter(function() {
                         return $(this).text().toUpperCase() === item[1].toUpperCase();
@@ -317,7 +317,7 @@ var FormFiller = (function() {
                 }
 
                 var condition = function() {
-                    if (_this.$("label.form-label:Contains('" + item[0] + "')").filter(":visible").length > 0) return true;
+                    if (_this.$(".form-label:Contains('" + item[0] + "')").filter(":visible").length > 0) return true;
                 };
                 waitForConditionAndExecute.call(this, uniqueIDString, condition, action, maxRetries);
             },
