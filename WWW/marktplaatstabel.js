@@ -15,13 +15,13 @@ var PhotoUploader = require('photo-uploader');
 
 var settings = {
     title        : "Marktplaatstabel",
-    version      : "2.4.4",
+    version      : "2.4.5",
     proxyURL     : "http://www..marktplaatstabel.services",
     sslProxyURL  : "http://ssl.marktplaatstabel.services",
     proxyTarget  : "www.marktplaats.nl",
     listenPort   : 80,
     //publicFolder : '/Users/Shared/Marktplaatstabel',
-    publicFolder : 'C:/Users/Public/DocumentsMarktplaatstabel',
+    publicFolder : 'C:/Users/Public/Documents/Marktplaatstabel',
     appRootPath  : '/marktplaatstabel'
 };
 
@@ -241,10 +241,9 @@ var transformerFunction = function(httpMessageBody, req) {
         "theme_advanced_buttons1:'bold,italic,underline'" : 
             "theme_advanced_buttons1:'bold,italic,underline,code'",
 
-	// Insert new css file
-        '<\/head>' : '<link href="http:\/\/localhost\/marktplaatstabel\/css\/marktplaats800px.css" rel="stylesheet" type="text\/css" media="screen"><\/link><\/head>',
-	// Insert expandSelect javascript addon
-	'<\/body>' : '<script type="text\/javascript" src="http:\/\/localhost\/marktplaatstabel\/js\/expandSelect.js"><\/script><\/head>',
+	// Insert new css file and expandSelect javascript addon
+        '<\/head>' : '<link href="http:\/\/localhost\/marktplaatstabel\/css\/marktplaats800px.css" rel="stylesheet" type="text\/css" media="screen"><\/link>'+
+	             '<script type="text\/javascript" src="http:\/\/localhost\/marktplaatstabel\/js\/expandSelect.js"><\/script><\/head>',
 	// Open 'place add' form target in new window to prevent HTTP iframe in HTTPS document.
 	'(action="https://localhost/syi/placeAdvertisement.html/m/save.html")' : '$1 target="_blank"'
     };

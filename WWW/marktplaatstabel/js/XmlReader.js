@@ -21,7 +21,6 @@ var XmlReader = (function() {
 
 	"use strict";
 
-    
         function XmlReader(query) {
 
             this.records = null;
@@ -78,7 +77,7 @@ var XmlReader = (function() {
 
         function setGetterForEachXmlTag(_this, xmlRecord) {
 
-            // Create getter for each field in COLUMN_HEADERS
+            // Create getter for each COLUMN_HEADERS field in xmlRecord
             $.each(_this.COLUMN_HEADERS, function (ix, colName) {
 
                     if (typeof xmlRecord[colName]==="undefined" || xmlRecord[colName]===null) {
@@ -124,7 +123,7 @@ var XmlReader = (function() {
                             if (typeof val ==='undefined' || val.indexOf(":")===-1) {
                                     return;
                             }
-                            newArray[ix]=val.split(":");
+                            newArray[ix]=val.split(/:(.*)/);
                             // Remove leading and trailing spaces from result values of split
                             $.each(newArray[ix], function(y,val) {
                                    newArray[ix][y] = $.trim(newArray[ix][y]);

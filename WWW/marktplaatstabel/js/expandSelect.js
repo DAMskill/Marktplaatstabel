@@ -1,12 +1,51 @@
-if (typeof $ !=='undefined')
-{
+"use strict";
 
-    $(window).load(function() {
+(function(){
 
-            if ($("div.syi-container").length > 0) {
+    var checkForjQueryAndAddExpandSelect = setInterval(function() { addExpandSelect(); }, 1000);
+
+    function addExpandSelect() {
+
+        if (typeof $ !=='undefined')
+        {
+            clearInterval(checkForjQueryAndAddExpandSelect);
+
+            var textElement = null;
+
+            var setText = function() {
+                    var inuit = localStorage.getItem("expanded")==="1" ? "in" : "uit";
+                    var toggleText = 'Alle keuzelijsten '+inuit+'klappen';
+                    $(textElement).text(toggleText);
+            }
+
+            var toggleSelect = function() {
+
+                    if (localStorage.getItem("expanded")==="0") {
+                            $('select').each(function(ix, el){
+                                 if ($(el).parent().is(":visible"))
+                                    $(el).attr('size', $("option", el).size());
+                            });
+                            localStorage.expanded = "1";
+                    }
+                    else {
+                            $('select').each(function(ix, el){
+                                $(el).removeAttr("size");
+                            });
+                            localStorage.expanded = "0";
+                    }
+                    setText();
+            }
+
+            if ($("#syi-form").length > 0) {
+
+                var a = document.createElement('a');
+                textElement = document.createElement('span');
+                $(a).css({"font-size":"13px","margin-left":"70px","outline":"0"});
+                $(a).append(textElement);
+                $(a).click(function(){toggleSelect()});
 
                 // Append toggle text container
-                $("div.syi-container h3.section-header:eq(1)").append('<a id="toggleText" style="font-size:13px;margin-left:10px;" href="#"" onclick="toggleSelect();return false;"><span></span></a>');
+                $("div.box-header h3.heading-3:eq(1)").append(a);
 
                 if (localStorage.getItem("expanded") === null) {
                     localStorage.expanded = 0;
@@ -18,28 +57,7 @@ if (typeof $ !=='undefined')
                     toggleSelect();
                 }
             }
-    });
-
-    function setText() {
-            var inuit = localStorage.getItem("expanded")==="1" ? "in" : "uit";
-            var toggleText = 'Alle keuzelijsten '+inuit+'klappen';
-            $("#toggleText span").text(toggleText);
+        }
     }
 
-    function toggleSelect() {
-
-            if (localStorage.getItem("expanded")==="0") {
-                    $('div.syi-container div.attribute').css('height','auto');
-                    $('div.syi-container div.attribute div.form-field').css('margin-bottom','10px');
-                    $('.dropdown ul').css({'position':'static','display':'block'});
-                    localStorage.expanded = isExpanded = "1";
-            }
-            else {
-                    $('div.syi-container div.attribute').css('height','');
-                    $('div.syi-container div.attribute div.form-field').css('margin-bottom','');
-                    $('.dropdown ul').css({'position':'','display':''});
-                    localStorage.expanded = isExpanded = "0";
-            }
-            setText();
-    }
-}
+}());

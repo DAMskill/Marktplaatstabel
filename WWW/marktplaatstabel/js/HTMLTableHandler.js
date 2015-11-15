@@ -254,7 +254,7 @@ var HTMLTableHandler = (function() {
                                     // Deselect record checkbox
                                     $("table.ExcelTable2007 > tbody > tr").eq(_this.recordsQueue[0]).find("input:checkbox").click();
 
-                                    // Submit form with ajax to prevent loading every new advertisement.
+                                    // Submit form with ajax to prevent loading every newly placed advertisement.
                                     var callOnSuccess = function() { ++_this.totalNrOfAdsPlaced; };
                                     var callOnFailure = function() { printErrors(_this, "Advertentie plaatsen mislukt"); };
                                     _this.formFiller.submitFormWithAjax(callOnSuccess, callOnFailure);
@@ -299,7 +299,7 @@ var HTMLTableHandler = (function() {
                     else {
                         if (_this.formFiller.inFinalForm()===true) {
                             _this.record = null;
-                            setStatusMessage("Excel record succesvol ingevuld");
+                            setStatusMessage("Record succesvol ingevuld");
                         }
                     }
                 }

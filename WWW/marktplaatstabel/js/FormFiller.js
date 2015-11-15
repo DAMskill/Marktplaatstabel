@@ -51,7 +51,6 @@ var FormFiller = (function() {
     function FormFiller(targetWindow, eventHandler, recordStatusHandler) {
 
         this.record = null;
-        // Target window is set in FormFiller.fillForm()
         this.targetWindow = targetWindow; // Window with the form to fill
 
         this.eventHandler = eventHandler;
@@ -111,6 +110,7 @@ var FormFiller = (function() {
 
     function realFillForm(_this, record, callbackWhenReady) {
 
+        console.log(9);
         _this.record = record;
         _this.windowUrlOnStartFillForm = _this.targetWindow.document.URL;
         _this.$ = _this.targetWindow.$; // jQuery shortcut ($ variable) of targetWindow
@@ -122,8 +122,8 @@ var FormFiller = (function() {
 
         // Add a new jQuery Sizzle pseudo selector
         _this.$.find.selectors.pseudos.Contains = function(a, i, m) {
-        // case-insensitive
-            return (a.textContent || a.innerText || "").toUpperCase().indexOf(m[3].toUpperCase()) >= 0;
+            // case-insensitive
+            return (a.textContent || a.innerText || "").toUpperCase().replace(/\s/g,'').indexOf(m[3].toUpperCase().replace(/\s/g,'')) >= 0;
         };
 
         /* Walk through rules per URL, and pass record and rule object to the
@@ -308,12 +308,16 @@ var FormFiller = (function() {
                 var _this = this;
                 var action = function() {
                     var dropdownLabel = _this.$(".form-label:Contains('" + item[0] + "')");
-                    var targetUL = dropdownLabel.parent().find("ul.item-frame");
-                    var targetLI = targetUL.find("li").filter(function() {
-                        return $(this).text().toUpperCase() === item[1].toUpperCase();
+
+                    var targetSelect = dropdownLabel.parent().find("select:enabled");
+
+                    var targetOption = targetSelect.find("option:enabled").filter(function() {
+                        return $(this).text().toUpperCase().replace(/\s/g,'') === item[1].toUpperCase().replace(/\s/g,'');
                     });
-                    targetLI.click();
-                    return (dropdownLabel.parent().find("span.label").text().toUpperCase().indexOf(item[1].toUpperCase()) != -1);
+
+                    targetOption.prop('selected', true);
+                    targetSelect.change();
+                    return targetSelect.val()!=="" && typeof targetSelect.val()!=="undefined";
                 }
 
                 var condition = function() {
@@ -370,7 +374,7 @@ var FormFiller = (function() {
                     this.errors.push("Prijstype " + pricetype + " niet gevonden");
                 }
                 else {
-                    this.$("div.form-field div label:Contains('" + pricetype + "')").parent().find("input:first").prop('checked', true);
+                    this.$("div.form-field div label:Contains('" + pricetype + "')").parent().find("input:first").click();
                 }
             }
         },
@@ -378,19 +382,16 @@ var FormFiller = (function() {
             "action": function(item, uniqueIDString, maxRetries) {
 
                 var _this = this;
+                var condition = function() { return true; };
                 var action = function() {
                     var label = _this.$("a:Contains('Kies ander prijstype')");
                     label.click();
-                    var targetUL = label.parent().parent().find("ul.item-frame");
-                    var targetLI = targetUL.find("li").filter(function() {
+                    var targetSelect = label.parent().parent().find("select");
+                    var targetOption = targetSelect.find("option").filter(function() {
                         return $(this).text().toUpperCase() === item.toUpperCase();
                     });
-                    targetLI.click();
-                    return (label.parent().parent().find("span.label").text().toUpperCase().indexOf(item.toUpperCase()) != -1);
+                    return targetOption.prop('selected', true);
                 }
-                var condition = function() {
-                    return true;
-                };
                 waitForConditionAndExecute.call(this, uniqueIDString, condition, action, maxRetries);
             },
             "maxRetries": 10,
@@ -419,13 +420,19 @@ var FormFiller = (function() {
             }
         },
         "inputfields": {
-            "action": function(item) {
-                if (!this.$("label:Contains('" + item[0] + "')").length>0) {
-                    this.errors.push(item[0] + " niet gevonden");
+            "action": function(item, uniqueIDString, maxRetries) {
+                var _this = this;
+                var condition = function() {
+                    return (_this.$("label:Contains('" + item[0] + "')").parent().find("input[type='text']:first:enabled").length>0);
+                };
+                var action = function() {
+                    return _this.$("label:Contains('" + item[0] + "')").parent().find("input[type='text']:first:enabled").val(item[1]);
                 }
-                else {
-                    this.$("label:Contains('" + item[0] + "')").parent().find("input:first").val(item[1]);
-                }
+                waitForConditionAndExecute.call(this, uniqueIDString, condition, action, maxRetries);
+            },
+            "maxRetries": 10,
+            "getUniqueSlotID": function(item) {
+                return "invoerveld '" + item[0] + "'";
             }
         }
     };
@@ -473,7 +480,7 @@ var FormFiller = (function() {
             url: "http://ssl.marktplaatstabel.services/postPicture",
             dataType: "json",
             tryCount: 0,
-            retryLimit: 3,
+            retryLimit: 10,
             data: JSON.stringify({
                 xsrfToken: _this.$("input[name='nl.marktplaats.xsrf.token']").val(),
                 mpSessionID: CookieHandler.getCookie('MpSession'),
@@ -500,13 +507,16 @@ var FormFiller = (function() {
             },
             error: function(xhr, textStatus, errorThrown) {
 
+                var _thisAjax = this;
                 var error = "Foto '"+picPath+"' toevoegen mislukt";
 
-                if (xhr.status === 500 || textStatus === 'timeout') {
+                //console.log("error: "+xhr.status +" "+xhr.textStatus+" "+errorThrown);
+
+                if (xhr.status === 500 || textStatus === 'timeout' || textStatus === 'parsererror') {
 
                     if (++this.tryCount <= this.retryLimit) {
                         // retry picture upload
-                        $.ajax(this);
+                        setTimeout(function(){$.ajax(_thisAjax)}, 200);
                     }
                     else {
                         postPictureErrorHandler.call(_this, error, uniqueIDString);

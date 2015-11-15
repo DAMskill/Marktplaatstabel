@@ -84,7 +84,7 @@ var ExcelReader = (function() {
                             if (typeof val ==='undefined' || val.indexOf(":")===-1) {
                                     return;
                             }
-                            newArray[ix]=val.split(":");
+                            newArray[ix]=val.split(/:(.*)/); // split on first colon
                             // Remove leading and trailing spaces from result values of split
                             $.each(newArray[ix], function(y,val) {
                                    newArray[ix][y] = $.trim(newArray[ix][y]);
